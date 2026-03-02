@@ -214,6 +214,18 @@ gemini-cli     available    /usr/bin/gemini (v0.16.0)
 
 Python 3.12+. No ML/AI libraries — the harness only *invokes* agents, it doesn't run models.
 
+## Why Python
+
+The harness is glue code — it launches subprocesses, parses JSON, writes reports. The choice of language matters less than in a performance-critical system, so the decision optimizes for development speed and ecosystem fit.
+
+- **The workload is subprocess orchestration.** The agents are external CLIs. The harness calls them via `asyncio.create_subprocess_exec`, reads their stdout, and parses JSON. Python handles this fine — the agents are the bottleneck, not the harness.
+- **`click` + `rich` is a proven CLI stack.** These are mature, well-documented libraries that get a polished CLI with minimal code. No equivalent pairing exists in Go or Rust with the same productivity.
+- **Dataclasses and Protocols fit the domain.** `TaskDefinition`, `NormalizedTokenUsage`, and `AgentAdapter` map naturally to frozen dataclasses and structural typing. No framework or ORM needed.
+- **Audience alignment.** Developers using AI coding agents are likely comfortable reading and extending Python. Lower barrier to contribution.
+- **No runtime performance pressure.** The harness spends its time waiting for agents to finish. There is no hot loop, no high-throughput path, no latency-sensitive code.
+
+Go or Rust would offer single-binary distribution and avoid the Python runtime dependency. If distribution becomes a pain point, that tradeoff can be revisited.
+
 ## Future: Multi-Agent
 
 The architecture supports multi-agent from day one:
