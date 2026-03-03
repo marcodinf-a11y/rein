@@ -65,11 +65,11 @@ Artifacts and diffs are captured *before* the sandbox is cleaned up.
 
 ### 3. Output Capture (`agents/*.py`)
 
-Each adapter parses the agent's stdout (JSON or JSONL), extracts the result text, and normalizes token usage into a unified model. Raw output is preserved for debugging.
+Each adapter parses the agent's stdout (JSON or JSONL), extracts the result text, and normalizes token usage into a unified model (see [TOKENS.md](TOKENS.md)). Raw output is preserved for debugging.
 
 ### 4. Evaluation (`evaluate.py`)
 
-Runs `validation_commands` in the sandbox after the agent finishes. Scoring is binary — all commands pass (score 1.0) or any fails (score 0.0). Results are written to a structured JSON report.
+Runs `validation_commands` in the sandbox after the agent finishes. Scoring is binary — all commands pass (score 1.0) or any fails (score 0.0). Results are written to a structured JSON report (see [REPORTS.md](REPORTS.md)).
 
 ## Agent Adapter Interface
 
@@ -100,62 +100,7 @@ The `run` method is `async` because all three CLIs are subprocess invocations th
 
 ## Token Normalization Model
 
-Every agent's output is mapped into a unified `NormalizedTokenUsage`:
-
-```python
-@dataclass(frozen=True)
-class NormalizedTokenUsage:
-    """Unified token metrics across all agents."""
-    input_tokens: int
-    output_tokens: int
-    cache_read_tokens: int = 0
-    cache_write_tokens: int = 0
-    total_tokens: int = 0       # Computed: input + output
-```
-
-### Normalization Rules
-
-- `total_tokens` is always `input_tokens + output_tokens` — never pulled from agent-specific "total" fields
-- Thinking/reasoning tokens are excluded from the total
-- Cache tokens are tracked but not added to the total
-- Budget checks use `total_tokens`
-
-### Field Mapping
-
-| Normalized Field | Claude Code | Codex CLI | Gemini CLI |
-|---|---|---|---|
-| `input_tokens` | `usage.input_tokens` | sum of `usage.input_tokens` across `turn.completed` events | sum of `tokens.prompt` across models |
-| `output_tokens` | `usage.output_tokens` | sum of `usage.output_tokens` across `turn.completed` events | sum of `tokens.candidates` across models |
-| `cache_read_tokens` | `usage.cache_read_input_tokens` | sum of `usage.cached_input_tokens` across `turn.completed` events | sum of `tokens.cached` across models |
-| `cache_write_tokens` | `usage.cache_creation_input_tokens` | 0 (not reported) | 0 (not reported) |
-
-`cache_write_tokens` is only available from Claude Code. This asymmetry is documented, not hidden.
-
-### Budget Status
-
-```python
-class BudgetStatus(Enum):
-    WITHIN = "within"       # Under 80% of budget
-    WARNING = "warning"     # 80-100% of budget
-    EXCEEDED = "exceeded"   # Over budget
-```
-
-Budget analysis:
-
-```python
-def analyze_budget(usage, budget=70_000):
-    return {
-        "total_tokens": usage.total_tokens,
-        "budget": budget,
-        "utilization_pct": round(usage.total_tokens / budget * 100, 1),
-        "status": usage.budget_status(budget).value,
-        "remaining": max(0, budget - usage.total_tokens),
-        "cache_efficiency": {
-            "cache_read_tokens": usage.cache_read_tokens,
-            "cache_write_tokens": usage.cache_write_tokens,
-        },
-    }
-```
+Token normalization — the `NormalizedTokenUsage` dataclass, normalization rules, field mapping table, `BudgetStatus` enum, and `analyze_budget` function — is documented in [TOKENS.md](TOKENS.md). Per-agent token field mappings and adapter code are in [AGENTS.md](AGENTS.md).
 
 ## Execution Flow
 
@@ -168,7 +113,7 @@ def analyze_budget(usage, budget=70_000):
 7. Capture diff and artifacts before sandbox cleanup
 8. Run validation commands in sandbox
 9. Generate evaluation result
-10. Save structured JSON report to `results/{task_id}_{YYYYMMDD_HHMMSS}.json`
+10. Save structured JSON report to `results/{task_id}_{YYYYMMDD_HHMMSS}.json` (see [REPORTS.md](REPORTS.md))
 
 ## CLI Design
 

@@ -32,13 +32,9 @@ The harness solves this by giving you a controller layer. You break work into di
 
 ## Token Budget as Health Metric
 
-Token tracking is central. The default budget is **70,000 tokens** (input + output). This is not a hard limit — it's a health metric:
+Token tracking is central. The default budget is **70,000 tokens** (input + output). This is not a hard limit — it's a health metric that signals context rot risk. Thinking/reasoning tokens are excluded from the budget. Cache tokens are tracked but not counted toward the total.
 
-- **Under 80%** (< 56k) — task is progressing normally
-- **80–100%** (56k–70k) — context rot risk is elevated, consider wrapping up
-- **Over 100%** (> 70k) — context rot is likely, start a fresh session
-
-Thinking/reasoning tokens are excluded from the budget. Cache tokens are tracked but not counted toward the total.
+For budget thresholds, status tiers, and the full token normalization model, see [TOKENS.md](TOKENS.md).
 
 ## Scope
 

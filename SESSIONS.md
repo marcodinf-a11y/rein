@@ -37,70 +37,11 @@ A "session" in the harness is a single task execution: one task dispatched to on
                 (Artifacts already captured)
 ```
 
-## Token Budget Monitoring
+This lifecycle corresponds to the execution flow defined in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-### The 70k Default
+## Token Budget
 
-The default budget is 70,000 tokens (input + output). This represents the point where context rot risk becomes significant for typical coding tasks.
-
-### What Counts
-
-- `input_tokens` + `output_tokens` = `total_tokens` (this is what the budget tracks)
-- **Thinking/reasoning tokens**: excluded from budget (agent-internal, not controllable)
-- **Cache read tokens**: tracked but not counted toward budget
-- **Cache write tokens**: tracked but not counted toward budget
-
-### Budget Status Thresholds
-
-| Status | Utilization | Total Tokens | Signal |
-|---|---|---|---|
-| **WITHIN** | < 80% | < 56,000 | Normal operation |
-| **WARNING** | 80–100% | 56,000–70,000 | Context rot risk elevated |
-| **EXCEEDED** | > 100% | > 70,000 | Context rot likely |
-
-### Budget Analysis Output
-
-Each report includes a budget analysis block:
-
-```json
-{
-    "total_tokens": 13350,
-    "budget": 70000,
-    "utilization_pct": 19.1,
-    "status": "within",
-    "remaining": 56650,
-    "cache_efficiency": {
-        "cache_read_tokens": 9000,
-        "cache_write_tokens": 3500
-    }
-}
-```
-
-## Context Window Monitoring
-
-Separate from the token budget, context window usage tracks how full the agent's context is:
-
-| Context Used | Status | Meaning |
-|---|---|---|
-| 0–40% | Green | Plenty of room |
-| 41–50% | Yellow | Middle range |
-| 51–100% | Red | Context is running low |
-
-This is most relevant for multi-turn sessions where the conversation accumulates.
-
-## When to Start Fresh
-
-The harness flags a session for restart when:
-
-1. **Budget exceeded** — total tokens > 70k (or custom budget)
-2. **Warning threshold hit** — total tokens > 80% of budget
-3. **Progressive bloat** — multiple turns consuming progressively more input tokens (sign of context accumulation)
-
-The recommended response:
-
-- **WITHIN**: continue working
-- **WARNING**: finish the current subtask, then start a new session
-- **EXCEEDED**: stop, start fresh, break the task into smaller pieces
+Token budget monitoring — the 70k default, what counts toward the budget, budget status thresholds, and when to start fresh — is documented in [TOKENS.md](TOKENS.md).
 
 ## Session Continuation (Per-Agent)
 
@@ -135,69 +76,7 @@ No documented session resume mechanism. Each invocation is independent.
 
 ## Report Format
 
-Each run produces a JSON report saved to `results/{task_id}_{YYYYMMDD_HHMMSS}.json`:
-
-```json
-{
-    "task": {
-        "id": "fizzbuzz-001",
-        "name": "FizzBuzz implementation",
-        "prompt": "...",
-        "token_budget": 70000
-    },
-    "results": [
-        {
-            "agent_name": "claude-code",
-            "task_id": "fizzbuzz-001",
-            "exit_code": 0,
-            "normalized_tokens": {
-                "input_tokens": 12500,
-                "output_tokens": 850,
-                "cache_read_tokens": 9000,
-                "cache_write_tokens": 3500,
-                "total_tokens": 13350
-            },
-            "budget_status": "within",
-            "budget_analysis": {
-                "total_tokens": 13350,
-                "budget": 70000,
-                "utilization_pct": 19.1,
-                "status": "within",
-                "remaining": 56650
-            },
-            "duration_seconds": 8.2,
-            "cost_usd": 0.0399,
-            "result_text": "...",
-            "diff": "diff --git a/fizzbuzz.py...",
-            "artifacts": {
-                "fizzbuzz.py": "def main():\n..."
-            },
-            "timestamp": "2026-03-02T22:15:00"
-        }
-    ],
-    "evaluations": [
-        {
-            "agent_name": "claude-code",
-            "task_id": "fizzbuzz-001",
-            "validation_passed": true,
-            "validation_output": "1\n2\nFizz\n4\nBuzz\n...",
-            "score": 1.0,
-            "notes": ""
-        }
-    ],
-    "timestamp": "2026-03-02T22:15:15"
-}
-```
-
-### Key Fields
-
-- **`normalized_tokens`** — unified token usage, comparable across agents
-- **`budget_status`** — quick health check: `within`, `warning`, or `exceeded`
-- **`budget_analysis`** — detailed breakdown with utilization percentage and remaining budget
-- **`cost_usd`** — dollar cost (available from Claude Code; `null` for others)
-- **`diff`** — git diff of what the agent changed in the sandbox
-- **`artifacts`** — map of filename → content for files the agent created/modified
-- **`validation_passed`** / **`score`** — evaluation results from running validation commands
+The structured JSON report format — schema, key fields, evaluation scoring, and output conventions — is documented in [REPORTS.md](REPORTS.md).
 
 ## Multi-Session Patterns
 

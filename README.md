@@ -15,11 +15,12 @@ Development workflow tool for controlling AI coding agents during long-running s
 | Document | Content |
 |---|---|
 | [BRIEF.md](BRIEF.md) | Project brief — what, who, why, four pillars, MVP scope, multi-agent future |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System overview, subsystems, agent adapter protocol, token normalization model, execution flow, CLI design |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System overview, subsystems, agent adapter protocol, execution flow, CLI design |
 | [AGENTS.md](AGENTS.md) | Per-agent integration reference — invocation syntax, JSON output formats, token field mappings, quirks |
-| [TASKS_JSON.md](TASKS_JSON.md) | Task definition spec (JSON) — schema, examples, validation patterns, token budget guidelines |
-| [TASKS_YAML.md](TASKS_YAML.md) | Task definition spec (YAML) — future alternative format |
-| [SESSIONS.md](SESSIONS.md) | Session management — lifecycle, context monitoring, budget thresholds, report format |
+| [TASKS.md](TASKS.md) | Task definition spec — JSON (MVP) + YAML (future), schema, examples, validation patterns |
+| [TOKENS.md](TOKENS.md) | Token normalization model, budget thresholds, budget analysis, cache semantics |
+| [REPORTS.md](REPORTS.md) | Report JSON schema, evaluation scoring, output conventions |
+| [SESSIONS.md](SESSIONS.md) | Session management — lifecycle, session continuation, multi-session patterns |
 
 ## Quick Start
 
@@ -39,10 +40,4 @@ harness run -t tasks/example_fizzbuzz.json --dry-run
 
 ## Token Budget
 
-Default: **70,000 tokens** (input + output). Thinking/reasoning tokens excluded.
-
-| Status | Utilization | Signal |
-|---|---|---|
-| **WITHIN** | < 80% | Normal operation |
-| **WARNING** | 80–100% | Context rot risk elevated |
-| **EXCEEDED** | > 100% | Start fresh |
+Default: **70,000 tokens** (input + output). Thinking/reasoning tokens excluded. See [TOKENS.md](TOKENS.md) for the full token normalization model, budget thresholds, and analysis details.
