@@ -13,7 +13,10 @@ A "session" in the harness is a single task execution: one task dispatched to on
 ```
 1. LOAD        Load task definition from JSON
                 │
-2. SANDBOX     Create temp directory
+2. SANDBOX     Create sandbox per workspace.type:
+                  tempdir  → empty temp directory
+                  worktree → git worktree from source repo
+                  copy     → copy source tree into temp directory
                 Write seed files
                 Run setup commands
                 │

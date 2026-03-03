@@ -12,37 +12,9 @@ Cross-document review of all seven specification files, with focus on greenfield
 
 ---
 
-### 2. Sandbox model has no brownfield story
+### ~~2. Sandbox model has no brownfield story~~ — RESOLVED
 
-**Documents:** BRIEF.md, ARCHITECTURE.md, TASKS_JSON.md, SESSIONS.md
-
-BRIEF.md line 29 says "temp directory, worktree" and ARCHITECTURE.md line 41 describes `sandbox.py` as "Execution isolation (worktrees/tmp dirs)". But every concrete specification assumes a fresh temporary directory:
-
-- ARCHITECTURE.md line 62: "Creates a temporary directory for each run"
-- Execution flow step 2: "Create isolated sandbox (temp directory)"
-- Session lifecycle step 2: "Create temp directory"
-- All task examples use `git init` in `setup_commands` — greenfield only
-
-There is no mechanism for brownfield use:
-
-- No `workspace` or `source_dir` field in the task schema to point at an existing codebase
-- No documented worktree creation logic anywhere
-- The `files` field requires inlining all content as JSON strings — does not scale beyond trivial seed files
-- No explanation of how diff baselines are established against an existing project
-- Validation commands that depend on broader project context (integration tests, shared modules) have no access path
-
-The BRIEF.md states this tool is for "actual development work" on existing codebases, but the entire execution model is greenfield-only.
-
-**Fix:** Add a `workspace` field to `TaskDefinition`:
-
-```python
-@dataclass(frozen=True)
-class WorkspaceConfig:
-    type: str          # "tempdir" | "worktree" | "copy"
-    source: str = ""   # Path to existing repo/directory (required for worktree/copy)
-```
-
-Document worktree behavior in ARCHITECTURE.md under Execution Isolation. Define how diff baselines are captured (commit hash at sandbox creation time). Consider a `files_from` field or glob pattern as an alternative to inlining file contents.
+**Status:** Resolved. `WorkspaceConfig` dataclass added to TASKS.md with three sandbox types: `tempdir` (default, greenfield), `worktree` (git worktree from existing repo), and `copy` (copy source tree into temp directory). The `workspace` field is optional on `TaskDefinition` — omitting it preserves the existing `tempdir` behavior. TASKS.md documents workspace types with diff baseline semantics and cleanup behavior for each. JSON schema updated with conditional `source` requirement. Brownfield examples added (JSON and YAML). ARCHITECTURE.md Execution Isolation section updated with a workspace type table. Execution flow step 2 and the system diagram reflect the three workspace types. SESSIONS.md Session Lifecycle step 2 updated.
 
 ---
 
@@ -313,7 +285,7 @@ The invocation example uses `--full-auto`. The cross-agent table maps Codex auto
 | #  | Issue | Severity | Category |
 |----|-------|----------|----------|
 | 1  | ~~`total_tokens` always 0~~ | ~~Critical~~ | ~~Design bug~~ — **RESOLVED** |
-| 2  | No brownfield sandbox support | Critical | Greenfield/brownfield gap |
+| 2  | ~~No brownfield sandbox support~~ | ~~Critical~~ | ~~Greenfield/brownfield gap~~ — **RESOLVED** |
 | 3  | Codex fails without git | Critical | Adapter edge case |
 | 4  | Cache token semantics ambiguous | High | Token normalization |
 | 5  | "Not a benchmark tool" contradiction | High | Framing |

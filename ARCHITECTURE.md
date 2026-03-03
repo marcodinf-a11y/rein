@@ -14,11 +14,11 @@ The harness is a Python CLI application that orchestrates AI coding agents. It l
 ├──────────┬──────────┬───────────┬───────────────┤
 │ Dispatch │ Sandbox  │  Capture  │  Evaluation   │
 │          │          │           │               │
-│ Load     │ Temp dir │ Parse     │ Validate      │
-│ task     │ Seed     │ JSON      │ Score         │
-│ JSON     │ files    │ Normalize │ Report        │
-│ Invoke   │ Setup    │ tokens    │               │
-│ agent    │ cmds     │ Diff      │               │
+│ Load     │ Tempdir  │ Parse     │ Validate      │
+│ task     │ Worktree │ JSON      │ Score         │
+│ JSON     │ Copy     │ Normalize │ Report        │
+│ Invoke   │ Seed     │ tokens    │               │
+│ agent    │ Setup    │ Diff      │               │
 ├──────────┴──────────┴───────────┴───────────────┤
 │              Agent Adapters                      │
 │     claude.py   codex.py   gemini.py            │
@@ -59,7 +59,15 @@ Loads a `TaskDefinition` from JSON and invokes the appropriate agent adapter. Th
 
 ### 2. Execution Isolation (`sandbox.py`)
 
-Creates a temporary directory for each run. Seed files from the task definition are written into it. Setup commands (e.g. `git init`, `python3 -m venv .venv`) run before the agent is invoked. The agent's `cwd` is set to the sandbox directory.
+Creates an isolated sandbox for each run based on the task's `workspace` configuration (see [TASKS.md — Workspace Types](TASKS.md#workspace-types)):
+
+| Type | Mechanism | Diff baseline | Cleanup |
+|---|---|---|---|
+| `tempdir` (default) | Empty temp directory | Initial commit after setup (if git init'd) | Delete temp directory |
+| `worktree` | `git worktree add` from source repo | `HEAD` of source at creation time | `git worktree remove` + delete branch |
+| `copy` | Copy source tree into temp directory | Current commit (git repo) or auto-created initial commit (non-git) | Delete temp directory |
+
+After the sandbox is created, seed files from `files` are written (overwriting or adding), then `setup_commands` run. The agent's `cwd` is set to the sandbox directory.
 
 Artifacts and diffs are captured *before* the sandbox is cleaned up.
 
@@ -105,7 +113,7 @@ Token normalization — the `NormalizedTokenUsage` dataclass, normalization rule
 ## Execution Flow
 
 1. Load task definition from JSON
-2. Create isolated sandbox (temp directory)
+2. Create isolated sandbox per `workspace.type` (tempdir, worktree, or copy)
 3. Seed files and run setup commands in sandbox
 4. Invoke agent CLI as subprocess in sandbox directory
 5. Parse agent's JSON output for token usage and result

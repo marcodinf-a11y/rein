@@ -10,10 +10,17 @@ The `TaskDefinition` dataclass is the canonical in-memory representation, shared
 
 ```python
 @dataclass(frozen=True)
+class WorkspaceConfig:
+    """Controls how the sandbox directory is created."""
+    type: str = "tempdir"   # "tempdir" | "worktree" | "copy"
+    source: str = ""        # Path to existing repo/directory (required for worktree/copy)
+
+@dataclass(frozen=True)
 class TaskDefinition:
     id: str
     name: str
     prompt: str
+    workspace: WorkspaceConfig = field(default_factory=WorkspaceConfig)
     setup_commands: list[str] = field(default_factory=list)
     validation_commands: list[str] = field(default_factory=list)
     files: dict[str, str] = field(default_factory=dict)
@@ -30,6 +37,7 @@ class TaskDefinition:
 | `id` | `str` | yes | — | Unique task identifier |
 | `name` | `str` | yes | — | Human-readable task name |
 | `prompt` | `str` | yes | — | Prompt sent to the agent |
+| `workspace` | `WorkspaceConfig` | no | `{type: "tempdir"}` | Sandbox creation strategy (see [Workspace Types](#workspace-types)) |
 | `setup_commands` | `list[str]` | no | `[]` | Commands to run before the agent starts |
 | `validation_commands` | `list[str]` | no | `[]` | Commands to run after the agent finishes |
 | `files` | `dict[str, str]` | no | `{}` | Filename to content mapping to seed in sandbox |
@@ -37,6 +45,58 @@ class TaskDefinition:
 | `timeout_seconds` | `int` | no | `300` | Wall-clock timeout in seconds |
 | `tags` | `list[str]` | no | `[]` | For filtering and categorization |
 | `metadata` | `dict[str, Any]` | no | `{}` | Arbitrary metadata |
+
+### WorkspaceConfig Fields
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `type` | `str` | no | `"tempdir"` | `"tempdir"`, `"worktree"`, or `"copy"` |
+| `source` | `str` | conditional | `""` | Path to existing repo or directory. Required when `type` is `"worktree"` or `"copy"`. Ignored for `"tempdir"`. |
+
+---
+
+## Workspace Types
+
+The `workspace` field controls how the sandbox directory is created. This determines whether the agent works in a fresh empty directory (greenfield) or against an existing codebase (brownfield).
+
+### `tempdir` (default)
+
+Creates an empty temporary directory. This is the current behavior and the default when `workspace` is omitted.
+
+- No `source` required
+- Seed files from `files` are written into the empty directory
+- `setup_commands` run after seeding (e.g. `git init`, `python3 -m venv .venv`)
+- Diff baseline: initial commit after setup, or no baseline if no git repo is initialized
+- Cleanup: directory is deleted after artifacts are captured
+
+Best for: greenfield tasks, algorithm challenges, self-contained modules.
+
+### `worktree`
+
+Creates a git worktree from an existing repository. The agent works on a detached branch — the original working tree is untouched.
+
+- `source` is required and must point to a git repository
+- The harness runs `git worktree add <sandbox_path> -b harness/<task_id> HEAD` from the source repo
+- Seed files from `files` are written into the worktree (overwriting existing files or adding new ones)
+- `setup_commands` run after seeding
+- Diff baseline: the commit at worktree creation time (`HEAD` of source at invocation)
+- Cleanup: `git worktree remove <sandbox_path>` and `git branch -D harness/<task_id>`
+
+Best for: brownfield tasks against git repositories — refactoring, bug fixes, feature additions. The agent has access to the full project structure, existing tests, and dependencies.
+
+### `copy`
+
+Copies an existing directory into a temporary directory. The agent works on the copy — the original is untouched.
+
+- `source` is required and must point to an existing directory
+- The harness copies the source tree into a fresh temp directory (respecting `.gitignore` if present)
+- If the source is a git repo, the copy includes `.git` — diff baseline is the current commit
+- If the source is not a git repo, the harness runs `git init` and creates an initial commit to establish a diff baseline
+- Seed files from `files` are written into the copy (overwriting or adding)
+- `setup_commands` run after seeding
+- Cleanup: temp directory is deleted after artifacts are captured
+
+Best for: non-git projects, or when you need full isolation (e.g. destructive setup commands, testing different approaches against the same snapshot).
 
 ---
 
@@ -68,6 +128,16 @@ class TaskDefinition:
         "id":                  { "type": "string", "description": "Unique task identifier" },
         "name":                { "type": "string", "description": "Human-readable task name" },
         "prompt":              { "type": "string", "description": "Prompt sent to the agent" },
+        "workspace": {
+            "type": "object",
+            "description": "Sandbox creation strategy",
+            "properties": {
+                "type":   { "type": "string", "enum": ["tempdir", "worktree", "copy"], "default": "tempdir" },
+                "source": { "type": "string", "description": "Path to existing repo/directory (required for worktree/copy)", "default": "" }
+            },
+            "additionalProperties": false,
+            "default": { "type": "tempdir" }
+        },
         "setup_commands":      { "type": "array", "items": { "type": "string" }, "default": [] },
         "validation_commands": { "type": "array", "items": { "type": "string" }, "default": [] },
         "files":               { "type": "object", "additionalProperties": { "type": "string" }, "default": {} },
@@ -75,6 +145,12 @@ class TaskDefinition:
         "timeout_seconds":     { "type": "integer", "default": 300 },
         "tags":                { "type": "array", "items": { "type": "string" }, "default": [] },
         "metadata":            { "type": "object", "default": {} }
+    },
+    "if": {
+        "properties": { "workspace": { "properties": { "type": { "enum": ["worktree", "copy"] } } } }
+    },
+    "then": {
+        "properties": { "workspace": { "required": ["source"] } }
     },
     "additionalProperties": false
 }
@@ -139,6 +215,62 @@ class TaskDefinition:
 }
 ```
 
+**Brownfield — Refactor existing module** (worktree):
+
+```json
+{
+    "id": "refactor-auth-001",
+    "name": "Refactor auth module to use JWT",
+    "prompt": "Refactor src/auth.py to use PyJWT instead of the custom token implementation.\nKeep the same public API (create_token, verify_token, refresh_token).\nUpdate tests in tests/test_auth.py to cover the new implementation.\nRun the full test suite to verify nothing else breaks.",
+    "workspace": {
+        "type": "worktree",
+        "source": "/home/dev/projects/myapp"
+    },
+    "setup_commands": [
+        "pip install pyjwt"
+    ],
+    "validation_commands": [
+        "python -c 'from src.auth import create_token, verify_token, refresh_token'",
+        "pytest tests/test_auth.py -v",
+        "pytest tests/ -v --timeout=60"
+    ],
+    "token_budget": 70000,
+    "timeout_seconds": 300,
+    "tags": ["medium", "python", "refactor", "auth"],
+    "metadata": {
+        "target_files": ["src/auth.py", "tests/test_auth.py"],
+        "difficulty": "medium"
+    }
+}
+```
+
+**Brownfield — Fix bug in existing project** (copy):
+
+```json
+{
+    "id": "fix-parser-001",
+    "name": "Fix CSV parser edge case",
+    "prompt": "The CSV parser in lib/csv_parser.py crashes on quoted fields containing newlines.\nFix the bug and add a regression test in tests/test_csv_parser.py.\nThe failing input is: '\"hello\\nworld\",42'",
+    "workspace": {
+        "type": "copy",
+        "source": "/home/dev/projects/data-tools"
+    },
+    "files": {
+        "tests/fixtures/newline_in_quotes.csv": "name,value\n\"hello\nworld\",42\n"
+    },
+    "validation_commands": [
+        "pytest tests/test_csv_parser.py -v -k newline"
+    ],
+    "token_budget": 50000,
+    "timeout_seconds": 180,
+    "tags": ["easy", "python", "bugfix"],
+    "metadata": {
+        "target_files": ["lib/csv_parser.py", "tests/test_csv_parser.py"],
+        "difficulty": "easy"
+    }
+}
+```
+
 ---
 
 ## YAML Format [Planned]
@@ -170,6 +302,9 @@ The YAML schema will map directly to the same `TaskDefinition` dataclass:
 id: string                        # Unique task identifier
 name: string                      # Human-readable task name
 prompt: string                    # Prompt sent to the agent (multiline with |)
+workspace:                        # Sandbox creation strategy
+  type: string                    # "tempdir" (default) | "worktree" | "copy"
+  source: string                  # Path to existing repo/directory
 setup_commands: list[string]      # Commands to run before the agent starts
 validation_commands: list[string] # Commands to run after the agent finishes
 files: dict[string, string]       # filename -> content to seed in sandbox
@@ -243,6 +378,37 @@ timeout_seconds: 300
 tags: ["medium", "python", "api", "testing"]
 metadata:
   expected_files: ["app.py", "test_app.py"]
+  difficulty: "medium"
+```
+
+**Brownfield — Refactor existing module** (worktree) — this task definition will look like:
+
+```yaml
+id: refactor-auth-001
+name: "Refactor auth module to use JWT"
+prompt: |
+  Refactor src/auth.py to use PyJWT instead of the custom token implementation.
+  Keep the same public API (create_token, verify_token, refresh_token).
+  Update tests in tests/test_auth.py to cover the new implementation.
+  Run the full test suite to verify nothing else breaks.
+
+workspace:
+  type: worktree
+  source: /home/dev/projects/myapp
+
+setup_commands:
+  - "pip install pyjwt"
+
+validation_commands:
+  - "python -c 'from src.auth import create_token, verify_token, refresh_token'"
+  - "pytest tests/test_auth.py -v"
+  - "pytest tests/ -v --timeout=60"
+
+token_budget: 70000
+timeout_seconds: 300
+tags: ["medium", "python", "refactor", "auth"]
+metadata:
+  target_files: ["src/auth.py", "tests/test_auth.py"]
   difficulty: "medium"
 ```
 
