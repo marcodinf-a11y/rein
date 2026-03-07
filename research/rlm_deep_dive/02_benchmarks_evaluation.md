@@ -1,8 +1,8 @@
 # RLM Benchmarks, Evaluation, and Cost Analysis
 
-How RLM performance data maps onto the harness's evaluation model, budget system, and quality gate.
+How RLM performance data maps onto Rein's evaluation model, budget system, and quality gate.
 
-Sources: [RLM paper (arXiv:2512.24601)](https://arxiv.org/abs/2512.24601), [Reproduction paper (arXiv:2603.02615)](https://arxiv.org/abs/2603.02615), harness specs (TOKENS.md, QUALITY_GATE.md, 07_agent_evaluation_benchmarks.md).
+Sources: [RLM paper (arXiv:2512.24601)](https://arxiv.org/abs/2512.24601), [Reproduction paper (arXiv:2603.02615)](https://arxiv.org/abs/2603.02615), rein specs (TOKENS.md, QUALITY_GATE.md, 07_agent_evaluation_benchmarks.md).
 
 ---
 
@@ -33,11 +33,11 @@ The paper identifies three complexity classes that determine how RLM cost scales
 
 The S-NIAH results establish a crossover: RLMs become worthwhile when **task complexity exceeds what attention can handle in a single pass**. For simple retrieval on contexts under ~16K tokens, base models are cheaper and equally accurate. The crossover sits roughly at the point where either (a) the input exceeds the model's context window, or (b) the task requires multiple passes over the input (comparison, aggregation, multi-hop reasoning).
 
-For the harness, this means RLM wrapping should be conditional, not default. A task classifier or complexity heuristic would need to gate whether the RLM scaffold is invoked. No such classifier exists in the RLM paper or reference implementation -- the user decides manually.
+For rein, this means RLM wrapping should be conditional, not default. A task classifier or complexity heuristic would need to gate whether the RLM scaffold is invoked. No such classifier exists in the RLM paper or reference implementation -- the user decides manually.
 
 ---
 
-## 2. CodeQA Translation to Harness Tasks
+## 2. CodeQA Translation to Rein Tasks
 
 CodeQA tests reading comprehension on 900K-token code repositories: the model is given a large codebase and asked factual questions about it (e.g., "What does function X return when Y is true?"). GPT-5 RLM scores 62% vs 24% for the base model (arXiv:2512.24601, Table 1).
 
@@ -45,17 +45,17 @@ CodeQA tests reading comprehension on 900K-token code repositories: the model is
 
 CodeQA is a **read-only Q&A benchmark**. The model must navigate a large codebase, find relevant code, and answer questions about it. It never modifies files, runs tests, or commits changes.
 
-### What the Harness Requires
+### What the Rein Requires
 
-Harness tasks are **action-oriented**: write code, fix bugs, run validation commands, produce diffs. The evaluation is binary -- all `validation_commands` pass (score 1.0) or any fail (score 0.0). The agent must modify the filesystem, not just comprehend it.
+Rein tasks are **action-oriented**: write code, fix bugs, run validation commands, produce diffs. The evaluation is binary -- all `validation_commands` pass (score 1.0) or any fail (score 0.0). The agent must modify the filesystem, not just comprehend it.
 
 ### Predictive Value
 
 CodeQA performance predicts one component of agentic coding: **codebase navigation and comprehension**. An agent that cannot understand a large codebase cannot fix bugs in it. But CodeQA says nothing about:
 
 - **Code generation quality** -- writing correct patches is harder than answering questions about existing code
-- **Tool use and iteration** -- harness agents run tests, read errors, and iterate; CodeQA is single-shot
-- **Diff scope control** -- the harness tracks diff size; CodeQA has no analog
+- **Tool use and iteration** -- rein agents run tests, read errors, and iterate; CodeQA is single-shot
+- **Diff scope control** -- rein tracks diff size; CodeQA has no analog
 - **Side effects** -- filesystem modifications, dependency installation, build steps
 
 The 62% CodeQA score suggests RLMs can navigate large codebases significantly better than base models. Whether that navigation advantage translates to better bug fixes is an open empirical question. No benchmark currently tests "RLM agent modifies a 900K-token codebase and produces a passing patch."
@@ -70,9 +70,9 @@ The RLM paper reports that median RLM runs are cheaper than base models on long-
 
 However, the distribution has heavy tails. The paper acknowledges that 95th-percentile runs can be 3-5x more expensive due to redundant verification loops and excessive sub-calls (arXiv:2512.24601, Section 6, Limitation 2; Appendix B.3 shows a model verifying its answer 5+ times).
 
-### Interaction with the Harness Budget Model
+### Interaction with Rein's Budget Model
 
-The harness uses a default 70K token budget with three thresholds (TOKENS.md):
+Rein uses a default 70K token budget with three thresholds (TOKENS.md):
 
 | Status | Utilization | Total Tokens | Signal |
 |--------|------------|--------------|--------|
@@ -82,21 +82,21 @@ The harness uses a default 70K token budget with three thresholds (TOKENS.md):
 
 The budget tracks `input_tokens + output_tokens` as `total_tokens`. This creates a tension with RLM cost profiles:
 
-1. **RLM sub-calls are invisible to the harness budget.** The harness monitors the top-level agent's token usage. If the agent invokes an RLM wrapper that makes 10 sub-LM calls, those sub-calls are billed by the API provider but may not surface in the harness's `NormalizedTokenUsage` extraction. The harness would need to aggregate tokens across the full RLM call tree, not just the root call.
+1. **RLM sub-calls are invisible to rein budget.** Rein monitors the top-level agent's token usage. If the agent invokes an RLM wrapper that makes 10 sub-LM calls, those sub-calls are billed by the API provider but may not surface in Rein's `NormalizedTokenUsage` extraction. Rein would need to aggregate tokens across the full RLM call tree, not just the root call.
 
 2. **The 70K budget is calibrated for single-pass agents.** RLMs on linear/quadratic tasks routinely consume more tokens by design. A CodeQA RLM run at $0.11 with GPT-5 pricing translates to roughly 30-50K tokens depending on the pricing model -- within budget. But an OOLONG run at $0.43 or a BrowseComp+ run at $0.99 would likely exceed 70K tokens.
 
-3. **Tail costs can blow past EXCEEDED.** If 95th-percentile runs are 3-5x the median, a task budgeted at 70K tokens could see outlier runs consuming 200K+ tokens. The harness's EXCEEDED status would trigger, but only if the sub-call tokens are visible to the budget tracker.
+3. **Tail costs can blow past EXCEEDED.** If 95th-percentile runs are 3-5x the median, a task budgeted at 70K tokens could see outlier runs consuming 200K+ tokens. Rein's EXCEEDED status would trigger, but only if the sub-call tokens are visible to the budget tracker.
 
 ### Can the Budget Catch Runaway Costs?
 
-Only if the harness can observe RLM sub-call token usage in real time. The current architecture monitors agent output streams (Claude Code, Codex CLI, Gemini CLI) for token usage events. An RLM-powered agent would need to either:
+Only if rein can observe RLM sub-call token usage in real time. The current architecture monitors agent output streams (Claude Code, Codex CLI, Gemini CLI) for token usage events. An RLM-powered agent would need to either:
 
 - Report aggregate token usage including sub-calls through the same stream interface
 - Expose a callback or event for each sub-call completion
 - Accept a token ceiling parameter that the RLM framework enforces internally
 
-The `rlms` library includes an `RLMLogger` that tracks per-call token usage to JSONL. The harness could parse these logs post-completion, but that provides no real-time budget enforcement.
+The `rlms` library includes an `RLMLogger` that tracks per-call token usage to JSONL. Rein could parse these logs post-completion, but that provides no real-time budget enforcement.
 
 ---
 
@@ -118,19 +118,19 @@ On a given aggregation task, running the same RLM configuration 30 times produce
 For a coding workflow, this means:
 
 - **A single run is not informative.** An RLM-powered agent might produce a perfect patch or a completely wrong one, with no way to predict which outcome a given run will produce.
-- **Retry strategies become essential.** The harness's `max_rounds = 2` retry mechanism (QUALITY_GATE.md) partially addresses this -- a failed first attempt gets a second shot with feedback. But if the underlying variance is due to RLM decomposition strategy (not fixable bugs), retry may not help.
-- **Majority voting is one mitigation.** Running the same task N times and taking the majority result reduces variance at the cost of N-fold expense. The harness does not currently support this pattern.
-- **Production reliability is low.** The reproduction paper concludes that "large-scale industrial deployment remains highly challenging" (arXiv:2603.02615). For a harness targeting reliable, repeatable coding workflows, RLM variance is a significant concern.
+- **Retry strategies become essential.** Rein's `max_rounds = 2` retry mechanism (QUALITY_GATE.md) partially addresses this -- a failed first attempt gets a second shot with feedback. But if the underlying variance is due to RLM decomposition strategy (not fixable bugs), retry may not help.
+- **Majority voting is one mitigation.** Running the same task N times and taking the majority result reduces variance at the cost of N-fold expense. Rein does not currently support this pattern.
+- **Production reliability is low.** The reproduction paper concludes that "large-scale industrial deployment remains highly challenging" (arXiv:2603.02615). For a system targeting reliable, repeatable coding workflows, RLM variance is a significant concern.
 
 ---
 
-## 5. Harness Evaluation Compatibility
+## 5. Rein Evaluation Compatibility
 
 ### Scoring Model Mismatch
 
-The harness uses binary scoring: all `validation_commands` pass (score 1.0) or any fail (score 0.0). RLM papers report accuracy percentages across benchmark suites (62% on CodeQA means 62% of questions answered correctly across many test cases).
+Rein uses binary scoring: all `validation_commands` pass (score 1.0) or any fail (score 0.0). RLM papers report accuracy percentages across benchmark suites (62% on CodeQA means 62% of questions answered correctly across many test cases).
 
-These are compatible in principle -- the harness score for a single task is binary, and accuracy across many tasks gives a percentage. A suite of 100 harness tasks would yield an accuracy metric comparable to benchmark scores.
+These are compatible in principle -- rein score for a single task is binary, and accuracy across many tasks gives a percentage. A suite of 100 rein tasks would yield an accuracy metric comparable to benchmark scores.
 
 ### Quality Gate Gaps for RLM Agents
 
@@ -145,18 +145,18 @@ The current quality gate (QUALITY_GATE.md) evaluates: build, tests, lint, typech
 | `repl_error_rate` | Fraction of REPL code executions that produced Python exceptions | High error rates indicate the model is struggling with code generation in the REPL. |
 | `cost_variance` | Ratio of actual cost to expected median cost for the task's complexity class | Flags outlier runs early. A run at 3x median cost is likely in a redundant verification loop. |
 
-These signals could be implemented as custom signals in `harness.toml` if the RLM framework exposes the necessary telemetry. The `RLMLogger` JSONL output contains sub-call counts and execution traces, which a post-processing script could parse into signal results.
+These signals could be implemented as custom signals in `rein.toml` if the RLM framework exposes the necessary telemetry. The `RLMLogger` JSONL output contains sub-call counts and execution traces, which a post-processing script could parse into signal results.
 
 ### Integration Path
 
 The most practical integration would be:
 
-1. The harness invokes the agent normally (Claude Code, Codex, etc.)
+1. Rein invokes the agent normally (Claude Code, Codex, etc.)
 2. The agent internally uses RLM wrapping for long-context subtasks
-3. After completion, the harness runs a custom signal that parses the RLM log file
+3. After completion, rein runs a custom signal that parses the RLM log file
 4. The custom signal checks sub-call count, error rate, and cost against configurable thresholds
 
-This keeps RLM awareness outside the core harness -- it is a project-specific quality check, not a built-in signal.
+This keeps RLM awareness outside core rein -- it is a project-specific quality check, not a built-in signal.
 
 ---
 
@@ -164,7 +164,7 @@ This keeps RLM awareness outside the core harness -- it is a project-specific qu
 
 ### Current Benchmark Landscape
 
-From the harness's benchmark research (07_agent_evaluation_benchmarks.md):
+From Rein's benchmark research (07_agent_evaluation_benchmarks.md):
 
 | Benchmark | Top Score | Task Type | Status |
 |-----------|-----------|-----------|--------|
@@ -179,7 +179,7 @@ Claude Opus 4.5 leads SWE-bench Pro at 45.9%. No model exceeds 11% on FeatureBen
 
 No existing benchmark tests RLM-powered agents on coding tasks. CodeQA is read-only comprehension. SWE-bench tasks typically involve codebases under 100K tokens -- well within context windows, where RLMs show no advantage over base models. FeatureBench and SWE-EVO involve larger scopes but have not been tested with RLM agents.
 
-### What Benchmarks Would Test RLM Agents on Harness-Style Tasks?
+### What Benchmarks Would Test RLM Agents on Rein-Style Tasks?
 
 A meaningful RLM coding agent benchmark would need:
 
@@ -199,13 +199,13 @@ No such benchmark exists as of March 2026. The closest candidate would be a modi
 
 ## Summary of Gaps
 
-| Gap | Evidence | Impact on Harness |
+| Gap | Evidence | Impact on Rein |
 |-----|----------|-------------------|
-| CodeQA is read-only; harness tasks modify code | arXiv:2512.24601 benchmark design | RLM comprehension gains may not transfer to action-oriented tasks |
-| Sub-call tokens invisible to budget tracker | Harness monitors top-level agent stream only | Budget EXCEEDED may not trigger on runaway RLM costs |
-| 0/6-to-6/6 run variance | arXiv:2603.02615, 30 identical runs | Single-run harness evaluation is unreliable for RLM agents |
-| No RLM coding agent benchmark exists | Survey of SWE-bench, FeatureBench, SWE-EVO | Cannot empirically validate RLM value for harness-style tasks |
+| CodeQA is read-only; rein tasks modify code | arXiv:2512.24601 benchmark design | RLM comprehension gains may not transfer to action-oriented tasks |
+| Sub-call tokens invisible to budget tracker | Rein monitors top-level agent stream only | Budget EXCEEDED may not trigger on runaway RLM costs |
+| 0/6-to-6/6 run variance | arXiv:2603.02615, 30 identical runs | Single-run rein evaluation is unreliable for RLM agents |
+| No RLM coding agent benchmark exists | Survey of SWE-bench, FeatureBench, SWE-EVO | Cannot empirically validate RLM value for rein-style tasks |
 | Quality gate lacks RLM-specific signals | QUALITY_GATE.md signal inventory | Cannot detect excessive sub-calls, REPL errors, or cost spikes |
-| Simple tasks degrade with RLM | arXiv:2603.02615, S-NIAH results | Harness would need a complexity classifier to decide when to engage RLM |
+| Simple tasks degrade with RLM | arXiv:2603.02615, S-NIAH results | Rein would need a complexity classifier to decide when to engage RLM |
 
-The evidence supports RLMs as a promising approach for tasks involving large codebases and complex reasoning. But the gap between benchmark performance (read-only Q&A on 900K-token repos) and production coding workflows (action-oriented, binary-scored, budget-constrained) remains unbridge by empirical data. Until RLM-specific coding agent benchmarks exist and the harness can observe sub-call token usage, integration should be treated as experimental.
+The evidence supports RLMs as a promising approach for tasks involving large codebases and complex reasoning. But the gap between benchmark performance (read-only Q&A on 900K-token repos) and production coding workflows (action-oriented, binary-scored, budget-constrained) remains unbridge by empirical data. Until RLM-specific coding agent benchmarks exist and rein can observe sub-call token usage, integration should be treated as experimental.

@@ -2,7 +2,7 @@
 
 **Deep Dive Document 04 | March 2026**
 
-How Principal Skinner proposes agent identity, what it actually implements, and whether the harness has a genuine gap worth fixing.
+How Principal Skinner proposes agent identity, what it actually implements, and whether rein has a genuine gap worth fixing.
 
 ---
 
@@ -30,9 +30,9 @@ OWASP ASI03 (Identity & Privilege Abuse) maps directly: isolated identities per 
 
 ---
 
-## 3. What the Harness Already Does
+## 3. What Rein Already Does
 
-The harness tracks identity at the **report level**, not the **commit level**:
+Rein tracks identity at the **report level**, not the **commit level**:
 
 | Data Point | Tracked | Where |
 |-----------|---------|-------|
@@ -46,16 +46,16 @@ The harness tracks identity at the **report level**, not the **commit level**:
 | Per-agent SSH key | No | Not relevant for local dev |
 | Per-agent service account | No | Not relevant for local dev |
 
-The harness knows *which agent produced which result* — but this knowledge lives in structured JSON reports, not in git history. A `git log` in the sandbox shows the operator's name on every commit, regardless of which agent wrote the code.
+Rein knows *which agent produced which result* — but this knowledge lives in structured JSON reports, not in git history. A `git log` in the sandbox shows the operator's name on every commit, regardless of which agent wrote the code.
 
 ---
 
 ## 4. The Low-Cost Fix
 
-Configuring git author per session is trivial and high-value. The harness already controls the subprocess environment. Adding two environment variables costs nothing:
+Configuring git author per session is trivial and high-value. Rein already controls the subprocess environment. Adding two environment variables costs nothing:
 
 ```
-git -c user.name="claude-code/opus/high" -c user.email="agent@harness.local" commit ...
+git -c user.name="claude-code/opus/high" -c user.email="agent@rein.local" commit ...
 ```
 
 Or, equivalently, setting `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` in the subprocess environment before launching the agent.
@@ -77,12 +77,12 @@ Or, equivalently, setting `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` in the subpro
 
 ## 5. What Principal Skinner Over-Engineers
 
-| Proposal | Rationale | Verdict for Harness |
+| Proposal | Rationale | Verdict for Rein |
 |----------|-----------|-------------------|
-| Per-agent SSH keys | Cryptographic identity proof | Over-engineering. The harness runs agents locally in sandboxes. SSH keys solve a remote-access authentication problem the harness does not have. |
+| Per-agent SSH keys | Cryptographic identity proof | Over-engineering. Rein runs agents locally in sandboxes. SSH keys solve a remote-access authentication problem rein does not have. |
 | Per-agent service accounts | Credential isolation | Over-engineering for local dev. Relevant for CI/CD pipelines or multi-tenant enterprise deployments. |
-| Immutable audit logs | Tamper-proof forensics | The harness's JSON reports are already append-only per session. "Immutable" implies a separate log store (S3, append-only DB) — unnecessary for local development. |
-| Agent IDs across sessions | Cross-session behavioral tracking | Partially useful. The harness could assign stable agent IDs, but cross-session tracking is a different feature (behavioral profiling) that requires a persistence layer the harness does not have. |
+| Immutable audit logs | Tamper-proof forensics | Rein's JSON reports are already append-only per session. "Immutable" implies a separate log store (S3, append-only DB) — unnecessary for local development. |
+| Agent IDs across sessions | Cross-session behavioral tracking | Partially useful. Rein could assign stable agent IDs, but cross-session tracking is a different feature (behavioral profiling) that requires a persistence layer rein does not have. |
 
 The "Anthropic Attack" article's call for logging "every decision, every tool call, every observation" with agent identity is enterprise-grade observability. For a solo developer running tasks locally, session-level reports with git attribution cover 90% of the forensic value at 5% of the implementation cost.
 
@@ -90,7 +90,7 @@ The "Anthropic Attack" article's call for logging "every decision, every tool ca
 
 ## 6. OWASP ASI03 Alignment
 
-| ASI03 Mitigation | Principal Skinner | Harness (Current) | Harness (With Git Identity) |
+| ASI03 Mitigation | Principal Skinner | Rein (Current) | Rein (With Git Identity) |
 |-----------------|-------------------|-------------------|---------------------------|
 | Isolated identities per agent | Proposed (SSH keys, service accounts) | Partial (report-level only) | Strong (report + git level) |
 | Short-lived credentials | Proposed | N/A (no agent credentials) | N/A |
@@ -98,13 +98,13 @@ The "Anthropic Attack" article's call for logging "every decision, every tool ca
 | Credential rotation | Proposed | N/A | N/A |
 | Audit trail | Proposed (immutable logs) | Yes (structured JSON reports) | Yes (reports + git history) |
 
-The harness satisfies ASI03's intent through containment rather than credential management. An agent in a sandbox with no access to production credentials cannot abuse credentials it does not have. Principal Skinner's credential-isolation approach solves the same problem for a different deployment model (agents with direct infrastructure access).
+Rein satisfies ASI03's intent through containment rather than credential management. An agent in a sandbox with no access to production credentials cannot abuse credentials it does not have. Principal Skinner's credential-isolation approach solves the same problem for a different deployment model (agents with direct infrastructure access).
 
 ---
 
 ## 7. The Ideal State
 
-For the harness, the ideal agent identity model is:
+For rein, the ideal agent identity model is:
 
 1. **Git author per session** — agent name, model, and effort encoded in commit metadata. Implementation cost: minimal (environment variables in subprocess).
 2. **Structured reports linked to commits** — the session report references the commit hash(es) produced during the session. Already partially implemented via git diff capture.
@@ -116,11 +116,11 @@ This is not Principal Skinner's full identity model. It is the subset that deliv
 
 ## 8. Recommendation
 
-**Do now:** Add agent-specific git author configuration per session. The harness controls the subprocess environment; setting `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` before agent launch is a one-line change per adapter. This closes the attribution gap at near-zero cost.
+**Do now:** Add agent-specific git author configuration per session. Rein controls the subprocess environment; setting `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` before agent launch is a one-line change per adapter. This closes the attribution gap at near-zero cost.
 
-**Do not:** Build SSH key infrastructure, service account management, or cross-session identity tracking. These solve problems the harness does not have in its current deployment model (local, single-operator, task-scoped sandboxes).
+**Do not:** Build SSH key infrastructure, service account management, or cross-session identity tracking. These solve problems rein does not have in its current deployment model (local, single-operator, task-scoped sandboxes).
 
-**Revisit when:** The harness supports CI/CD or multi-operator deployment, where credential isolation and cryptographic identity become necessary.
+**Revisit when:** Rein supports CI/CD or multi-operator deployment, where credential isolation and cryptographic identity become necessary.
 
 ---
 
@@ -129,6 +129,6 @@ This is not Principal Skinner's full identity model. It is the subset that deliv
 - "Supervising Ralph: Why Every Wiggum Loop Needs a Principal Skinner." securetrajectories.substack.com, 2026.
 - "The Anthropic Attack." securetrajectories.substack.com, 2026.
 - OWASP. "Top 10 for Agentic Applications 2026." owasp.org — ASI03 (Identity & Privilege Abuse), ASI10 (Rogue Agents).
-- Agentic Harness ARCHITECTURE.md, SESSIONS.md, TOKENS.md.
+- Rein ARCHITECTURE.md, SESSIONS.md, TOKENS.md.
 - research/ralph_wiggum_deep_dive/04_failure_modes.md — Section 4.2 (No Action Attribution).
 - research/principal_skinner_deep_dive/00_synthesis.md.

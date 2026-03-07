@@ -2,27 +2,27 @@
 
 **March 2026**
 
-This document synthesizes findings from eight specialist analyses of Recursive Language Models (RLMs) and their relevance to the agentic harness. Each section draws from multiple deep dive documents and the critical analysis.
+This document synthesizes findings from eight specialist analyses of Recursive Language Models (RLMs) and their relevance to rein. Each section draws from multiple deep dive documents and the critical analysis.
 
 ---
 
 ## 1. Executive Summary
 
-RLMs and the harness attack context rot from different levels — inference vs. orchestration — and are theoretically complementary. In practice, integration is premature. Every RLM benchmark tests read-only comprehension; zero evidence exists for improved coding agent task completion on action-oriented tasks. Run-to-run variance (0/6 to 6/6 on identical inputs) and heavy-tail costs (3-5x at p95) are disqualifying for production coding workflows. The harness's existing multi-session decomposition with zone-based intervention already solves the problem RLMs address, with higher reliability and operator control. The correct posture is: **monitor the RLM ecosystem, adopt specific patterns that transfer without the full stack, and defer integration until empirical evidence on coding tasks exists.**
+RLMs and rein attack context rot from different levels — inference vs. orchestration — and are theoretically complementary. In practice, integration is premature. Every RLM benchmark tests read-only comprehension; zero evidence exists for improved coding agent task completion on action-oriented tasks. Run-to-run variance (0/6 to 6/6 on identical inputs) and heavy-tail costs (3-5x at p95) are disqualifying for production coding workflows. Rein's existing multi-session decomposition with zone-based intervention already solves the problem RLMs address, with higher reliability and operator control. The correct posture is: **monitor the RLM ecosystem, adopt specific patterns that transfer without the full stack, and defer integration until empirical evidence on coding tasks exists.**
 
 ---
 
 ## 2. Complementary or Competing?
 
-**Finding: Complementary in theory, redundant in practice for current harness use cases.**
+**Finding: Complementary in theory, redundant in practice for current rein use cases.**
 
-RLMs prevent context rot within a single inference call by offloading context to a REPL variable. The harness prevents context rot across a multi-turn session by monitoring pressure and killing agents before quality degrades. These operate on orthogonal axes — single-call vs. session-level — and a system could use both ([01, Section 1](01_theory_mechanism.md)).
+RLMs prevent context rot within a single inference call by offloading context to a REPL variable. Rein prevents context rot across a multi-turn session by monitoring pressure and killing agents before quality degrades. These operate on orthogonal axes — single-call vs. session-level — and a system could use both ([01, Section 1](01_theory_mechanism.md)).
 
-However, the harness does not have a single-call context problem. Tasks are scoped to fit within context limits. The scenario requiring 900K tokens of simultaneous context (CodeQA) is a benchmark artifact, not a harness task pattern. Standard agents already navigate large codebases through selective file reads and tool use — functionally equivalent to RLM's REPL-based context inspection, without the additional infrastructure ([08, Section 1](08_critical_analysis.md)).
+However, rein does not have a single-call context problem. Tasks are scoped to fit within context limits. The scenario requiring 900K tokens of simultaneous context (CodeQA) is a benchmark artifact, not a rein task pattern. Standard agents already navigate large codebases through selective file reads and tool use — functionally equivalent to RLM's REPL-based context inspection, without the additional infrastructure ([08, Section 1](08_critical_analysis.md)).
 
 The one genuine complementary scenario: analysis tasks where the decomposition itself requires understanding the codebase (e.g., "find all SQL injection vulnerabilities in this 800K-token monorepo"). The operator cannot pre-decompose without already knowing the answer. This is a real task class but remains unevidenced for RLM effectiveness ([08, Section 10](08_critical_analysis.md)).
 
-**Verdict:** Complementary in principle. No current harness task requires RLM. Monitor for task classes that do.
+**Verdict:** Complementary in principle. No current rein task requires RLM. Monitor for task classes that do.
 
 ---
 
@@ -30,7 +30,7 @@ The one genuine complementary scenario: analysis tasks where the decomposition i
 
 **Finding: Technically feasible via subprocess wrapper; not justified without evidence of benefit.**
 
-An `RlmAdapter` can implement the `AgentAdapter` protocol via a CLI wrapper script that invokes `rlms.completion()` and emits NDJSON to stdout. This preserves the harness's subprocess isolation model and is architecturally consistent with existing adapters ([03, Section 1](03_implementation_architecture.md); [07, Section 1](07_harness_integration_design.md)).
+An `RlmAdapter` can implement the `AgentAdapter` protocol via a CLI wrapper script that invokes `rlms.completion()` and emits NDJSON to stdout. This preserves Rein's subprocess isolation model and is architecturally consistent with existing adapters ([03, Section 1](03_implementation_architecture.md); [07, Section 1](07_harness_integration_design.md)).
 
 Key architectural friction:
 - **No CLI binary** — RLM is a Python library, requiring a wrapper script (~100 lines)
@@ -64,7 +64,7 @@ If RLM integration proceeds, the `rlm_metrics` report extension ([07, Section 7]
 
 **Finding: No changes warranted to the zone system. Observation masking is the actionable insight.**
 
-The harness's green/yellow/red zone model is well-calibrated for subprocess agents with monotonically growing context. RLM's dual-context model (root grows, sub-calls fresh) does not require zone system changes — it requires a different pressure calculation within a hypothetical `RlmAdapter`, not changes to `ZoneConfig` or zone actions ([07, Section 3](07_harness_integration_design.md)).
+Rein's green/yellow/red zone model is well-calibrated for subprocess agents with monotonically growing context. RLM's dual-context model (root grows, sub-calls fresh) does not require zone system changes — it requires a different pressure calculation within a hypothetical `RlmAdapter`, not changes to `ZoneConfig` or zone actions ([07, Section 3](07_harness_integration_design.md)).
 
 The most actionable insight from RLM research for the zone system is not RLM itself but the observation masking pattern it validates. RLM's REPL naturally achieves observation masking — old REPL outputs are stored in Python variables and dropped from conversation context without information loss. The NeurIPS 2025 research confirms that observation masking reduces cost 50% without quality loss for SE agents ([01, Section 5.5](01_theory_mechanism.md)). This pattern could be applied to existing agents (Claude Code, Codex) without any RLM infrastructure — simply truncating prior tool outputs from the conversation while preserving reasoning traces.
 
@@ -74,15 +74,15 @@ The most actionable insight from RLM research for the zone system is not RLM its
 
 ## 6. RLM-Aware Evaluation Design
 
-**Finding: The harness's binary scoring is compatible. RLM-specific signals are premature.**
+**Finding: Rein's binary scoring is compatible. RLM-specific signals are premature.**
 
-The harness's binary pass/fail scoring is compatible with RLM evaluation — a suite of binary tasks produces an accuracy percentage comparable to benchmark scores ([02, Section 5](02_benchmarks_evaluation.md)). DSPy's metric framework can bridge to harness scoring via a simple wrapper function ([05, Section 5](05_dspy_rlm_module.md)).
+Rein's binary pass/fail scoring is compatible with RLM evaluation — a suite of binary tasks produces an accuracy percentage comparable to benchmark scores ([02, Section 5](02_benchmarks_evaluation.md)). DSPy's metric framework can bridge to rein scoring via a simple wrapper function ([05, Section 5](05_dspy_rlm_module.md)).
 
 The proposed `rlm_health` quality gate signal ([07, Section 6](07_harness_integration_design.md)) — tracking sub-call count, REPL errors, cost variance — is well-designed but premature. Every signal requires calibration baselines that do not exist. No RLM coding agent benchmark exists to validate thresholds ([02, Section 6](02_benchmarks_evaluation.md)). Building signals before building the adapter is engineering in the wrong order.
 
-The critical gap in evaluation: RLM's 0/6-to-6/6 variance means single-run binary evaluation is unreliable. The harness would need multi-run scoring (run each task N times, report pass rate and variance) to meaningfully evaluate RLM agents. This is a general evaluation improvement worth pursuing regardless of RLM — it benefits any agent with non-deterministic behavior ([02, Section 4](02_benchmarks_evaluation.md); [08, Section 3](08_critical_analysis.md)).
+The critical gap in evaluation: RLM's 0/6-to-6/6 variance means single-run binary evaluation is unreliable. Rein would need multi-run scoring (run each task N times, report pass rate and variance) to meaningfully evaluate RLM agents. This is a general evaluation improvement worth pursuing regardless of RLM — it benefits any agent with non-deterministic behavior ([02, Section 4](02_benchmarks_evaluation.md); [08, Section 3](08_critical_analysis.md)).
 
-**Verdict:** No RLM-specific evaluation changes. Consider multi-run scoring as a general harness improvement.
+**Verdict:** No RLM-specific evaluation changes. Consider multi-run scoring as a general rein improvement.
 
 ---
 
@@ -94,7 +94,7 @@ The critical gap in evaluation: RLM's 0/6-to-6/6 variance means single-run binar
 
 MIPROv2 can optimize RLM root instructions and may reduce variance by penalizing high-variance configurations during Bayesian search. However, it cannot optimize sub-call prompts (they're generated dynamically inside the REPL) and cannot eliminate stochastic variance from code generation ([05, Sections 2-3](05_dspy_rlm_module.md)).
 
-The correct integration path is **Option 3: offline optimization**. Use DSPy + MIPROv2 at development time to discover optimal RLM prompts, then export those prompts to a standalone RLM subprocess adapter. This captures DSPy's value (prompt optimization) without making DSPy a runtime dependency, which would break the harness's design principle of "no ML/AI libraries" ([05, Section 6](05_dspy_rlm_module.md); [03, Section 5](03_implementation_architecture.md)).
+The correct integration path is **Option 3: offline optimization**. Use DSPy + MIPROv2 at development time to discover optimal RLM prompts, then export those prompts to a standalone RLM subprocess adapter. This captures DSPy's value (prompt optimization) without making DSPy a runtime dependency, which would break Rein's design principle of "no ML/AI libraries" ([05, Section 6](05_dspy_rlm_module.md); [03, Section 5](03_implementation_architecture.md)).
 
 **Verdict:** DSPy is a development-time tool, not a runtime dependency. Only relevant if RLM integration proceeds.
 
@@ -104,15 +104,15 @@ The correct integration path is **Option 3: offline optimization**. Use DSPy + M
 
 **Finding: Three transferable patterns; the full RLMEnv stack is not relevant.**
 
-Prime Intellect's RLMEnv is a clean-room RLM implementation integrated into their RL training infrastructure. It is experimental, training-focused, and architecturally distant from the harness ([06](06_prime_intellect_rlmenv.md)).
+Prime Intellect's RLMEnv is a clean-room RLM implementation integrated into their RL training infrastructure. It is experimental, training-focused, and architecturally distant from rein ([06](06_prime_intellect_rlmenv.md)).
 
 **Patterns worth adopting (independent of RLM):**
 
-1. **Sub-query fan-out primitive (`llm_batch`).** Letting an agent dispatch parallel sub-queries within a single task improves throughput on decomposable subtasks. This could manifest as a "parallel review" tool — the agent sends multiple file paths, the harness dispatches concurrent LLM calls, results are collected. This is complementary to `--parallel` (which parallelizes entire tasks) and does not require the RLM stack ([06, Section 2](06_prime_intellect_rlmenv.md)).
+1. **Sub-query fan-out primitive (`llm_batch`).** Letting an agent dispatch parallel sub-queries within a single task improves throughput on decomposable subtasks. This could manifest as a "parallel review" tool — the agent sends multiple file paths, rein dispatches concurrent LLM calls, results are collected. This is complementary to `--parallel` (which parallelizes entire tasks) and does not require the RLM stack ([06, Section 2](06_prime_intellect_rlmenv.md)).
 
 2. **Structured answer protocol.** Requiring the agent to declare its output in a designated location (specific file, structured format) rather than parsing it from free-form conversation. This reduces quality gate fragility ([06, Section 4](06_prime_intellect_rlmenv.md)).
 
-3. **Tool delegation separation.** Giving the orchestrating agent minimal tools while pushing heavy tools to specialized sub-agents. Already partially implemented in the harness's review agent design (read-only tools) ([06, Section 7](06_prime_intellect_rlmenv.md)).
+3. **Tool delegation separation.** Giving the orchestrating agent minimal tools while pushing heavy tools to specialized sub-agents. Already partially implemented in Rein's review agent design (read-only tools) ([06, Section 7](06_prime_intellect_rlmenv.md)).
 
 **Not transferable:** Prime Sandboxes at scale (4,000+ concurrent — training-specific), continuous reward signals (RL training, not deployment gating), environment hub packaging, RLM-native RL training.
 
@@ -126,7 +126,7 @@ Prime Intellect's RLMEnv is a clean-room RLM implementation integrated into thei
 
 | Action | Rationale | Effort |
 |--------|-----------|--------|
-| **Investigate observation masking for existing agents** | 50% cost reduction with negligible quality loss (NeurIPS 2025). RLM's REPL naturally achieves this; the harness can implement it for Claude Code/Codex by truncating prior tool outputs from conversation context. | Medium |
+| **Investigate observation masking for existing agents** | 50% cost reduction with negligible quality loss (NeurIPS 2025). RLM's REPL naturally achieves this; rein can implement it for Claude Code/Codex by truncating prior tool outputs from conversation context. | Medium |
 | **Consider multi-run evaluation** | Running each task N times (3-5) and reporting pass rate + variance improves evaluation reliability for all agents, not just RLM. | Medium |
 | **Adopt structured answer protocol** | Require agents to produce output in a designated location (file, structured format) rather than parsing from conversation. Reduces quality gate fragility. Inspired by Prime Intellect's answer-variable pattern. | Low |
 
@@ -142,7 +142,7 @@ Prime Intellect's RLMEnv is a clean-room RLM implementation integrated into thei
 
 | Action | Trigger | Effort |
 |--------|---------|--------|
-| **Sub-query fan-out primitive** | When the harness supports multi-agent parallel execution. `llm_batch`-style sub-query dispatch within a single task. Does not require full RLM — just a parallel LLM call tool. | Medium |
+| **Sub-query fan-out primitive** | When rein supports multi-agent parallel execution. `llm_batch`-style sub-query dispatch within a single task. Does not require full RLM — just a parallel LLM call tool. | Medium |
 | **RLM-specific quality gate signals** | Only after accumulating baseline data from production RLM runs. Requires calibration data for sub-call count, REPL error rate, and cost variance thresholds. | Medium |
 | **Hybrid handoff mode** | Only if the minimal adapter demonstrates value and operators request automatic continuation at yellow zone. Substantial engineering for uncertain benefit. | High |
 | **RLM-informed task decomposition** | Only if model-driven decomposition proves more reliable than operator-defined decomposition on a meaningful task set. | High |
@@ -152,15 +152,15 @@ Prime Intellect's RLMEnv is a clean-room RLM implementation integrated into thei
 | Action | Why Not |
 |--------|---------|
 | **In-process RLM execution** | Breaks subprocess isolation. Performance argument is weak (API latency dominates). Fault isolation, resource control, and clean termination are non-negotiable. |
-| **LocalREPL in any configuration** | Arbitrary code execution in the harness process. No mitigation is sufficient — one configuration override and LLM-generated code runs unsandboxed. |
-| **Depth > 1 recursion** | 20% degradation per level is fundamental. The harness's multi-session approach has unlimited effective depth without compounding errors. Revisit only if fine-tuned models demonstrate reliable depth-2 performance. |
+| **LocalREPL in any configuration** | Arbitrary code execution in rein process. No mitigation is sufficient — one configuration override and LLM-generated code runs unsandboxed. |
+| **Depth > 1 recursion** | 20% degradation per level is fundamental. Rein's multi-session approach has unlimited effective depth without compounding errors. Revisit only if fine-tuned models demonstrate reliable depth-2 performance. |
 | **DSPy as runtime dependency** | Violates "no ML/AI libraries" design principle. Heavy dependency chain (DSPy + Deno + Pyodide). Use offline only. |
 
 ---
 
-## 10. Updates to Harness Design Docs
+## 10. Updates to Rein Design Docs
 
-No updates to harness design docs are warranted at this time. RLM integration is not justified by current evidence. The following updates should be made **if and when** the minimum viable experiment (Section 9, "Next") produces positive results:
+No updates to rein design docs are warranted at this time. RLM integration is not justified by current evidence. The following updates should be made **if and when** the minimum viable experiment (Section 9, "Next") produces positive results:
 
 | Document | Update |
 |----------|--------|
@@ -193,7 +193,7 @@ No updates to harness design docs are warranted at this time. RLM integration is
 - Prime Intellect RLMEnv: primeintellect.ai/blog/rlm
 - Base library: github.com/alexzhang13/rlm
 
-### Harness Design Documents
+### Rein Design Documents
 - ARCHITECTURE.md, TOKENS.md, SESSIONS.md, QUALITY_GATE.md, AGENTS.md
 - research/02_context_degradation_research.md
 - research/07_agent_evaluation_benchmarks.md
@@ -205,5 +205,5 @@ No updates to harness design docs are warranted at this time. RLM integration is
 - [04 Community & Reproduction](04_community_reproduction.md)
 - [05 DSPy RLM Module](05_dspy_rlm_module.md)
 - [06 Prime Intellect RLMEnv](06_prime_intellect_rlmenv.md)
-- [07 Harness Integration Design](07_harness_integration_design.md)
+- [07 Rein Integration Design](07_harness_integration_design.md)
 - [08 Critical Analysis](08_critical_analysis.md)

@@ -14,7 +14,7 @@ The following describes a proposed enhancement to the quality gate evaluation, d
 
 ### Completion Promise
 
-A completion promise is a structured signal the agent writes to indicate "I believe I am done." The harness cross-references this signal against `validation_commands` results to produce a three-outcome confidence classification.
+A completion promise is a structured signal the agent writes to indicate "I believe I am done." Rein cross-references this signal against `validation_commands` results to produce a three-outcome confidence classification.
 
 #### How It Works
 
@@ -22,12 +22,12 @@ A completion promise is a structured signal the agent writes to indicate "I beli
 
 ```
 When you are confident the task is complete and all requirements are met,
-create a file called .harness/complete with a brief summary of what you did.
+create a file called .rein/complete with a brief summary of what you did.
 ```
 
-2. After the agent exits, the harness checks for the marker file (`.harness/complete`) in the sandbox.
+2. After the agent exits, rein checks for the marker file (`.rein/complete`) in the sandbox.
 
-3. The harness cross-references the promise against validation results:
+3. Rein cross-references the promise against validation results:
 
 | Promise Filed | Validation Passed | Outcome | Interpretation |
 |--------------|-------------------|---------|---------------|
@@ -61,8 +61,8 @@ New fields:
 
 #### Implementation
 
-- **Marker file location:** `.harness/complete` in the sandbox directory
-- **Detection:** `os.path.exists(sandbox / ".harness" / "complete")` after agent exit, before sandbox cleanup
+- **Marker file location:** `.rein/complete` in the sandbox directory
+- **Detection:** `os.path.exists(sandbox / ".rein" / "complete")` after agent exit, before sandbox cleanup
 - **Prompt injection:** Add the completion promise instruction to the task prompt via a standard suffix. The operator can omit or customize the instruction.
 - **Backward compatible:** If no marker file exists, `completion_promise=false` and `completion_confidence` is determined by validation alone (`"suspicious"` if pass, `"incomplete"` if fail)
 
@@ -72,9 +72,9 @@ New fields:
 
 Ralph-orchestrator uses `ralph emit LOOP_COMPLETE` as a JSONL event that the agent emits during execution. The event loop checks for this event and validates it against `required_events` (e.g., `["build.done", "test.pass"]`) before accepting completion. If required events haven't been seen, completion is rejected and the loop continues.
 
-The harness adaptation is simpler — a marker file instead of a CLI event — because the harness runs agents as black-box subprocesses. The agent cannot call `harness emit`; it can only write files. A marker file achieves the same signal: the agent declares "I'm done" in a structured, detectable way.
+Rein adaptation is simpler — a marker file instead of a CLI event — because rein runs agents as black-box subprocesses. The agent cannot call `rein emit`; it can only write files. A marker file achieves the same signal: the agent declares "I'm done" in a structured, detectable way.
 
-The four-outcome classification adds a **confidence dimension** that the current binary quality gate lacks. Currently, the harness knows only pass/fail. With the completion promise:
+The four-outcome classification adds a **confidence dimension** that the current binary quality gate lacks. Currently, rein knows only pass/fail. With the completion promise:
 - **Suspicious passes** flag runs that might be accidentally passing (e.g., validation commands too weak)
 - **Overconfident failures** flag agents that hallucinate success — a direct signal for reward hacking
 

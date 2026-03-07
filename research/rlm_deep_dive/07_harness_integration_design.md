@@ -1,8 +1,8 @@
-# RLM Harness Integration Design
+# RLM Rein Integration Design
 
 **Deep Dive Document 07 | March 2026**
 
-A concrete integration design for bringing RLM capabilities into the agentic harness. This document specifies interfaces, data flow, and trade-offs. It does not recommend a single path -- it presents options with their costs.
+A concrete integration design for bringing RLM capabilities into rein. This document specifies interfaces, data flow, and trade-offs. It does not recommend a single path -- it presents options with their costs.
 
 References: [ARCHITECTURE.md](../../ARCHITECTURE.md), [TOKENS.md](../../TOKENS.md), [SESSIONS.md](../../SESSIONS.md), [QUALITY_GATE.md](../../QUALITY_GATE.md), [01_theory_mechanism.md](01_theory_mechanism.md), [02_benchmarks_evaluation.md](02_benchmarks_evaluation.md).
 
@@ -25,23 +25,23 @@ class AgentAdapter(Protocol):
 
 Every existing adapter (Claude Code, Codex, Gemini) invokes an external CLI via `asyncio.create_subprocess_exec`. The RLM library (`rlms`) is a Python package, not a CLI. Two options:
 
-**Option A: In-process (`import rlms`).** The adapter imports the `rlms` library directly, calls `completion()` within the harness's Python process, and collects results. The `run()` method is still `async` -- it wraps the synchronous `rlms` call in `asyncio.to_thread()` or uses the library's async API if available.
+**Option A: In-process (`import rlms`).** The adapter imports the `rlms` library directly, calls `completion()` within Rein's Python process, and collects results. The `run()` method is still `async` -- it wraps the synchronous `rlms` call in `asyncio.to_thread()` or uses the library's async API if available.
 
 | Pro | Con |
 |-----|-----|
-| Direct access to `RLMLogger` events, sub-call metadata, REPL state | Couples the harness to the `rlms` Python package as a dependency |
-| Token usage available programmatically -- no stream parsing needed | Crashes in RLM code (REPL exceptions, OOM) can bring down the harness process |
-| Lower latency -- no subprocess overhead | Breaks the harness's design principle: "No ML/AI libraries -- the harness only *invokes* agents" (ARCHITECTURE.md) |
+| Direct access to `RLMLogger` events, sub-call metadata, REPL state | Couples rein to the `rlms` Python package as a dependency |
+| Token usage available programmatically -- no stream parsing needed | Crashes in RLM code (REPL exceptions, OOM) can bring down rein process |
+| Lower latency -- no subprocess overhead | Breaks Rein's design principle: "No ML/AI libraries -- rein only *invokes* agents" (ARCHITECTURE.md) |
 
-**Option B: Subprocess wrapper.** Write a thin CLI script (`rlm_runner.py`) that accepts a task prompt on stdin or as an argument, invokes `rlms.completion()`, and emits NDJSON on stdout matching the harness's stream parsing expectations. The adapter invokes this script via `asyncio.create_subprocess_exec`, identical to existing adapters.
+**Option B: Subprocess wrapper.** Write a thin CLI script (`rlm_runner.py`) that accepts a task prompt on stdin or as an argument, invokes `rlms.completion()`, and emits NDJSON on stdout matching Rein's stream parsing expectations. The adapter invokes this script via `asyncio.create_subprocess_exec`, identical to existing adapters.
 
 | Pro | Con |
 |-----|-----|
-| Process isolation -- RLM crashes do not affect the harness | Requires designing a NDJSON output protocol for RLM events |
+| Process isolation -- RLM crashes do not affect rein | Requires designing a NDJSON output protocol for RLM events |
 | Consistent with existing adapter architecture | Token metadata must be serialized/deserialized across the process boundary |
-| No new dependencies in the harness package | Additional maintenance surface (the wrapper script) |
+| No new dependencies in rein package | Additional maintenance surface (the wrapper script) |
 
-**Assessment.** Option B is the safer choice for initial integration. It preserves process isolation and architectural consistency. Option A becomes attractive if the harness later needs real-time control over individual sub-calls (e.g., killing a specific sub-call that exceeds a token threshold), but that level of control is not required for MVP integration.
+**Assessment.** Option B is the safer choice for initial integration. It preserves process isolation and architectural consistency. Option A becomes attractive if rein later needs real-time control over individual sub-calls (e.g., killing a specific sub-call that exceeds a token threshold), but that level of control is not required for MVP integration.
 
 ### Task-to-RLM Mapping
 
@@ -71,7 +71,7 @@ class RlmAdapter:
 
 **Context construction.** For `workspace.type = "worktree"` or `"copy"`, the sandbox contains an existing codebase. The adapter reads the file tree and concatenates relevant files into the RLM's context variable. For `"tempdir"`, context comes only from `task.files`. The adapter should respect `.gitignore` and skip binary files when building context.
 
-**Sandbox interaction.** The RLM's REPL environment and the harness sandbox are separate concepts. The RLM REPL is where the model executes Python code to analyze context and delegate sub-calls. The harness sandbox is the filesystem where the final code artifacts live. The adapter must bridge these: after the RLM completes, it extracts code artifacts from the RLM's output and writes them to `sandbox_path`. The RLM does not directly modify the sandbox filesystem -- the adapter mediates.
+**Sandbox interaction.** The RLM's REPL environment and rein sandbox are separate concepts. The RLM REPL is where the model executes Python code to analyze context and delegate sub-calls. Rein sandbox is the filesystem where the final code artifacts live. The adapter must bridge these: after the RLM completes, it extracts code artifacts from the RLM's output and writes them to `sandbox_path`. The RLM does not directly modify the sandbox filesystem -- the adapter mediates.
 
 ### LLM Backend Configuration
 
@@ -182,7 +182,7 @@ Where `sub_call_breakdown` is:
 | Non-RLM agents set it to `None` -- no noise | Mutable dict inside a frozen dataclass is technically allowed but smells |
 | Easy to extend with more fields later | Consumers must null-check before accessing |
 
-**Assessment.** Option A for MVP. The harness's budget and pressure systems need accurate totals, and flat aggregation provides that with zero changes. Option C is the pragmatic next step when RLM-specific quality gate signals need sub-call data. Option B is the cleanest type-theoretically but introduces coupling that the protocol-based adapter architecture is designed to avoid.
+**Assessment.** Option A for MVP. Rein's budget and pressure systems need accurate totals, and flat aggregation provides that with zero changes. Option C is the pragmatic next step when RLM-specific quality gate signals need sub-call data. Option B is the cleanest type-theoretically but introduces coupling that the protocol-based adapter architecture is designed to avoid.
 
 ---
 
@@ -196,7 +196,7 @@ Standard agents have one context that grows monotonically. RLMs have two distinc
 
 2. **Sub-call contexts**: Each `llm_query()` starts fresh. Small, focused prompts (typically 2K-8K tokens). These do not accumulate -- they are independent.
 
-Standard harness pressure: `cumulative_tokens / context_window`. For RLMs, `cumulative_tokens` is ambiguous -- do sub-call tokens count toward the root's pressure?
+Standard rein pressure: `cumulative_tokens / context_window`. For RLMs, `cumulative_tokens` is ambiguous -- do sub-call tokens count toward the root's pressure?
 
 ### Proposed Pressure Model
 
@@ -235,11 +235,11 @@ Zone actions apply to the root context:
 
 **Yellow zone recovery.** When the root context hits yellow, the adapter should attempt to extract useful intermediate results from the REPL namespace. In subprocess mode (Option B from Section 1), the wrapper script can serialize all non-internal Python variables to JSON before exiting. In in-process mode, the adapter has direct access to the REPL namespace.
 
-**Sub-call pressure.** Individual sub-calls are unlikely to hit pressure limits (they use 2K-8K tokens against a 128K-200K window). If a sub-call somehow approaches its own model's context window, the RLM framework should handle that internally. The harness does not monitor individual sub-call pressure.
+**Sub-call pressure.** Individual sub-calls are unlikely to hit pressure limits (they use 2K-8K tokens against a 128K-200K window). If a sub-call somehow approaches its own model's context window, the RLM framework should handle that internally. Rein does not monitor individual sub-call pressure.
 
 ### Measurement Method
 
-For subprocess mode, the wrapper script emits NDJSON events including root token usage after each REPL turn. The harness monitor parses these the same way it parses Claude Code or Codex streams. Sub-call completions are emitted as informational events (for logging) but do not update the pressure calculation.
+For subprocess mode, the wrapper script emits NDJSON events including root token usage after each REPL turn. Rein monitor parses these the same way it parses Claude Code or Codex streams. Sub-call completions are emitted as informational events (for logging) but do not update the pressure calculation.
 
 ```jsonl
 {"type": "rlm_turn", "root_tokens_used": 15000, "root_context_window": 200000}
@@ -255,7 +255,7 @@ The monitor computes pressure from `rlm_turn` events only. `rlm_sub_call` events
 
 ### Trigger Conditions
 
-When a standard agent (Claude Code, Codex) hits yellow zone, instead of terminating and reporting partial results, the harness hands off remaining work to an RLM.
+When a standard agent (Claude Code, Codex) hits yellow zone, instead of terminating and reporting partial results, rein hands off remaining work to an RLM.
 
 ```python
 # In runner.py, after yellow zone triggers graceful stop:
@@ -265,7 +265,7 @@ if config.hybrid_rlm_handoff and termination_reason == "context_pressure":
 
 **What triggers the switch:**
 - The standard agent hits yellow zone (not red -- at red, context is too degraded for a useful state summary)
-- `hybrid_rlm_handoff = true` in `harness.toml` (disabled by default)
+- `hybrid_rlm_handoff = true` in `rein.toml` (disabled by default)
 - The RLM adapter is available (`RlmAdapter().is_available()`)
 
 ### Information Transfer
@@ -398,7 +398,7 @@ class SubtaskPlan:
     estimated_total_tokens: int      # Rough estimate across all subtasks
 ```
 
-Each subtask is a full `TaskDefinition` that the harness can execute independently:
+Each subtask is a full `TaskDefinition` that rein can execute independently:
 
 ```json
 [
@@ -654,7 +654,7 @@ The `agent_name` uses a compound identifier (`"claude-code+rlm"`) so report anal
 | RLM health signal | Built-in signal, optional | Custom signal via post-processing script |
 | Report extension | Optional `rlm_metrics` field | Separate RLM report file |
 
-Each decision prioritizes backward compatibility and minimal changes to existing harness interfaces. The RLM integration is additive -- it extends the harness without modifying the behavior of existing adapters or report consumers.
+Each decision prioritizes backward compatibility and minimal changes to existing rein interfaces. The RLM integration is additive -- it extends rein without modifying the behavior of existing adapters or report consumers.
 
 ---
 
@@ -662,6 +662,6 @@ Each decision prioritizes backward compatibility and minimal changes to existing
 
 - Zhang, Kraska, Khattab. "Recursive Language Models." arXiv:2512.24601, Dec 2025/Jan 2026.
 - Wang. "Think, But Don't Overthink: Reproducing Recursive Language Models." arXiv:2603.02615, Mar 2026.
-- Agentic Harness ARCHITECTURE.md, TOKENS.md, SESSIONS.md, QUALITY_GATE.md, REPORTS.md, TASKS.md, AGENTS.md.
+- Rein ARCHITECTURE.md, TOKENS.md, SESSIONS.md, QUALITY_GATE.md, REPORTS.md, TASKS.md, AGENTS.md.
 - Deep Dive 01: 01_theory_mechanism.md.
 - Deep Dive 02: 02_benchmarks_evaluation.md.

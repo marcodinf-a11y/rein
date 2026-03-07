@@ -2,7 +2,7 @@
 
 **Deep Dive Document 05 | March 2026**
 
-This document analyzes `dspy.RLM` as a potential integration layer between the agentic harness and the RLM inference paradigm. It evaluates the module's API surface, optimizer interaction, variance reduction potential, backend compatibility, and whether DSPy-as-intermediary is worth the added indirection.
+This document analyzes `dspy.RLM` as a potential integration layer between rein and the RLM inference paradigm. It evaluates the module's API surface, optimizer interaction, variance reduction potential, backend compatibility, and whether DSPy-as-intermediary is worth the added indirection.
 
 Sources: [DSPy RLM API docs](https://dspy.ai/api/modules/RLM/), [RLM paper (arXiv:2512.24601)](https://arxiv.org/abs/2512.24601), [DSPy Optimizers docs](https://dspy.ai/learn/optimization/optimizers/), [MIPROv2 docs](https://dspy.ai/api/optimizers/MIPROv2/), [DSPy Metrics docs](https://dspy.ai/learn/evaluation/metrics/), [Isaac Miller's DSPy-RLM blog](https://blog.isaacbmiller.com/posts/rlm), [cmpnd RLMs in DSPy](https://www.cmpnd.ai/blog/rlms-in-dspy.html), [Alex Zhang's RLM blog](https://alexzhang13.github.io/blog/2025/rlm/).
 
@@ -149,7 +149,7 @@ rlm = dspy.RLM("context, query -> answer", sub_lm=sub)
 
 ---
 
-## 5. DSPy Evaluation Framework vs. Harness Scoring
+## 5. DSPy Evaluation Framework vs. Rein Scoring
 
 ### DSPy's Evaluation Model
 
@@ -160,19 +160,19 @@ DSPy metrics are Python functions that take `(example, prediction, trace=None)` 
 
 DSPy also provides an `Assess` signature for LLM-as-judge evaluation, where another LM scores the output on multiple dimensions.
 
-### Harness's Evaluation Model
+### Rein's Evaluation Model
 
-The harness uses binary scoring: all `validation_commands` pass = 1.0, any fail = 0.0. This is a subprocess-level check -- run shell commands, check exit codes.
+Rein uses binary scoring: all `validation_commands` pass = 1.0, any fail = 0.0. This is a subprocess-level check -- run shell commands, check exit codes.
 
 ### Bridging the Gap
 
-These models are compatible. A DSPy metric for the harness would look like:
+These models are compatible. A DSPy metric for rein would look like:
 
 ```python
 import subprocess
 
 def harness_metric(example, prediction, trace=None):
-    """Bridge DSPy evaluation to harness binary scoring."""
+    """Bridge DSPy evaluation to rein binary scoring."""
     for cmd in example.validation_commands:
         result = subprocess.run(cmd, shell=True, capture_output=True)
         if result.returncode != 0:
@@ -180,7 +180,7 @@ def harness_metric(example, prediction, trace=None):
     return True if trace else 1.0
 ```
 
-This gives DSPy's optimizers a signal compatible with the harness's scoring model. The binary nature is actually fine for MIPROv2 -- it searches for instruction/demonstration combinations that maximize the pass rate across the training set. Binary metrics with enough training examples produce a smooth optimization surface (pass rate = continuous value between 0.0 and 1.0).
+This gives DSPy's optimizers a signal compatible with Rein's scoring model. The binary nature is actually fine for MIPROv2 -- it searches for instruction/demonstration combinations that maximize the pass rate across the training set. Binary metrics with enough training examples produce a smooth optimization surface (pass rate = continuous value between 0.0 and 1.0).
 
 The challenge is **evaluation speed**. Each MIPROv2 trial requires running validation commands, which means executing the full agent workflow. If a single evaluation takes minutes, MIPROv2's hundreds of trials become prohibitively expensive.
 
@@ -191,14 +191,14 @@ The challenge is **evaluation speed**. Each MIPROv2 trial requires running valid
 The proposed integration path:
 
 ```
-Harness CLI -> AgentAdapter -> DSPy program -> dspy.RLM -> PythonInterpreter -> LLM
+Rein CLI -> AgentAdapter -> DSPy program -> dspy.RLM -> PythonInterpreter -> LLM
 ```
 
 ### Architectural Mismatch
 
-The harness orchestrates agents as **subprocesses**. Each adapter (Claude, Codex, Aider) wraps a CLI tool, launches it, monitors its stdout/stderr, and tracks token usage from process output. DSPy is an **in-process** Python library. Using DSPy would require either:
+Rein orchestrates agents as **subprocesses**. Each adapter (Claude, Codex, Aider) wraps a CLI tool, launches it, monitors its stdout/stderr, and tracks token usage from process output. DSPy is an **in-process** Python library. Using DSPy would require either:
 
-1. **A DSPy agent adapter**: A new adapter that runs DSPy in-process rather than as a subprocess. This breaks the harness's uniform subprocess model and its isolation guarantees.
+1. **A DSPy agent adapter**: A new adapter that runs DSPy in-process rather than as a subprocess. This breaks Rein's uniform subprocess model and its isolation guarantees.
 
 2. **A DSPy CLI wrapper**: Package a DSPy program as a CLI tool, then write a standard adapter for it. This preserves the subprocess model but adds the overhead of serializing/deserializing DSPy state across process boundaries, losing DSPy's in-process optimization capabilities.
 
@@ -228,13 +228,13 @@ This captures DSPy's value (prompt optimization) without runtime coupling.
 | Factor | Assessment |
 |--------|-----------|
 | Prompt optimization | High value. MIPROv2 could find RLM instructions that reduce variance. |
-| Evaluation framework | Moderate value. Bridging to harness metrics is straightforward. |
-| Abstraction layer | Low value. The harness already has its own adapter abstraction. |
+| Evaluation framework | Moderate value. Bridging to rein metrics is straightforward. |
+| Abstraction layer | Low value. Rein already has its own adapter abstraction. |
 | Runtime dependency | High cost. DSPy + Deno + Pyodide is a heavy dependency chain. |
 | Subprocess compatibility | Poor. DSPy is designed for in-process use. |
 | Maintenance burden | Moderate. `dspy.RLM` is experimental; API may change. |
 
-**Recommendation:** Use DSPy as an offline optimization tool (Option 3), not as a runtime intermediary. The harness should integrate with the standalone `rlm` library directly via a subprocess adapter, using DSPy-optimized prompts discovered during development.
+**Recommendation:** Use DSPy as an offline optimization tool (Option 3), not as a runtime intermediary. Rein should integrate with the standalone `rlm` library directly via a subprocess adapter, using DSPy-optimized prompts discovered during development.
 
 ---
 
@@ -264,5 +264,5 @@ The practical takeaway: `dspy.RLM` is not an afterthought or community experimen
 | Can optimizers improve RLM? | Yes, at the root instruction level. Sub-call prompts are optimized indirectly. |
 | Can DSPy reduce variance? | Likely, by finding robust instruction configurations. Cannot eliminate stochastic variance. |
 | Backend compatibility? | DSPy has broader backend support than standalone RLM via LiteLLM. |
-| Evaluation compatibility? | Straightforward. Binary harness metrics map cleanly to DSPy metric functions. |
-| Should the harness use DSPy at runtime? | No. Use DSPy offline for prompt optimization; integrate standalone RLM via subprocess adapter. |
+| Evaluation compatibility? | Straightforward. Binary rein metrics map cleanly to DSPy metric functions. |
+| Should rein use DSPy at runtime? | No. Use DSPy offline for prompt optimization; integrate standalone RLM via subprocess adapter. |

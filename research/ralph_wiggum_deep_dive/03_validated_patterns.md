@@ -2,7 +2,7 @@
 
 **Deep Dive Document 03 | March 2026**
 
-Three patterns from the Ralph Loop are validated by independent evidence and worth adopting in the harness.
+Three patterns from the Ralph Loop are validated by independent evidence and worth adopting in rein.
 
 ---
 
@@ -24,9 +24,9 @@ Discard all conversation context between task attempts. Progress persists throug
 
 **From RLM research:** RLM's core mechanism is context offloading — storing the input as a REPL variable rather than feeding it through attention. Both RLM and Ralph independently validate: less context in the attention window = better reasoning.
 
-### Harness Alignment
+### Rein Alignment
 
-The harness already implements context rotation through zone-based intervention and multi-session decomposition. This pattern confirms the harness's core design is correct. No changes needed — but this evidence strengthens the case for aggressive zone thresholds (e.g., yellow at 50% rather than 60% for models with poor long-context performance).
+Rein already implements context rotation through zone-based intervention and multi-session decomposition. This pattern confirms Rein's core design is correct. No changes needed — but this evidence strengthens the case for aggressive zone thresholds (e.g., yellow at 50% rather than 60% for models with poor long-context performance).
 
 ---
 
@@ -46,9 +46,9 @@ Load identical specification text at the start of every iteration/session. The s
 
 **From RLM research:** Prime Intellect's "structured answer protocol" — requiring the agent to read requirements from a designated location — is the same pattern.
 
-### Harness Adoption
+### Rein Adoption
 
-The harness's seed file mechanism partially implements this. Seed files provide initial context to the agent at session start. However, seed files are currently used for code artifacts (files to read, patches to apply), not for persistent specifications.
+Rein's seed file mechanism partially implements this. Seed files provide initial context to the agent at session start. However, seed files are currently used for code artifacts (files to read, patches to apply), not for persistent specifications.
 
 **Recommendation:** Support a `spec_file` field in `TaskDefinition` that is distinct from seed files. The spec file is loaded into the agent's system prompt or initial message every session, ensuring the requirements are never lost to compaction. For multi-session workflows, the same spec file is used across all sessions.
 
@@ -80,9 +80,9 @@ Each iteration reads this file, benefiting from prior iterations' discoveries. T
 
 This is operational knowledge that would otherwise be rediscovered (and re-failed) every iteration.
 
-### Harness Adoption
+### Rein Adoption
 
-The harness's seed file mechanism can support this directly. Add an optional `learnings_file` to the session configuration:
+Rein's seed file mechanism can support this directly. Add an optional `learnings_file` to the session configuration:
 
 - **Write path:** The agent is instructed to append operational discoveries to this file during execution
 - **Read path:** The file is included as a seed file in subsequent sessions
@@ -98,15 +98,15 @@ This is low-effort and high-value. It transforms multi-session workflows from in
 
 ### 4.1 Fix Plan as Task List
 
-Ralph uses `fix_plan.md` as a mutable task list that the agent updates each iteration. The harness uses operator-defined task sequences instead. The harness's approach is more reliable (operator control) but less autonomous (requires pre-defined decomposition). This is a conscious design choice: the harness prioritizes reliability over autonomy. For exploratory tasks, agent-driven task lists may be valuable — but this is a future consideration, not a current adoption.
+Ralph uses `fix_plan.md` as a mutable task list that the agent updates each iteration. Rein uses operator-defined task sequences instead. Rein's approach is more reliable (operator control) but less autonomous (requires pre-defined decomposition). This is a conscious design choice: rein prioritizes reliability over autonomy. For exploratory tasks, agent-driven task lists may be valuable — but this is a future consideration, not a current adoption.
 
 ### 4.2 Semantic Git Tagging
 
-Ralph auto-tags commits with semantic versions (0.0.x). The harness produces structured reports instead. Tagging is a useful convention but orthogonal to the harness's evaluation model — the harness cares about validation results, not version numbers.
+Ralph auto-tags commits with semantic versions (0.0.x). Rein produces structured reports instead. Tagging is a useful convention but orthogonal to Rein's evaluation model — rein cares about validation results, not version numbers.
 
 ### 4.3 500-Subagent Parallelism
 
-Ralph's use of up to 500 parallel subagents for codebase analysis is specific to agents that support subagent dispatch (Claude Code with `--parallel` or equivalent). The harness orchestrates at the task level, not the intra-task level. Subagent dispatch is an agent capability, not a harness responsibility.
+Ralph's use of up to 500 parallel subagents for codebase analysis is specific to agents that support subagent dispatch (Claude Code with `--parallel` or equivalent). Rein orchestrates at the task level, not the intra-task level. Subagent dispatch is an agent capability, not a rein responsibility.
 
 ---
 

@@ -16,7 +16,7 @@ The following section is proposed for addition to SESSIONS.md, after the "Multi-
 
 > **Status: Planned.** Requires multi-task sequential execution. The design below is adapted from ralph-orchestrator's three-detector model.
 
-When running multiple sessions sequentially (multi-task workflows), the harness tracks failure patterns across sessions to detect stagnation — cases where the agent is stuck and additional sessions will not make progress.
+When running multiple sessions sequentially (multi-task workflows), rein tracks failure patterns across sessions to detect stagnation — cases where the agent is stuck and additional sessions will not make progress.
 
 #### Three Detectors
 
@@ -94,17 +94,17 @@ Ralph-orchestrator implements three stagnation detectors (`loop_state.rs`, `term
 - **Loop thrashing:** abandoned task redispatched 3+ times
 - **Consecutive failures:** 5 non-zero exits in a row
 
-These map cleanly to multi-session harness workflows. The adaptation translates ralph's iteration-level concepts to session-level:
+These map cleanly to multi-session rein workflows. The adaptation translates ralph's iteration-level concepts to session-level:
 
-| Ralph concept | Harness adaptation |
+| Ralph concept | Rein adaptation |
 |--------------|-------------------|
 | Same event 3x | Same validation failure 3x |
 | Abandoned task redispatched | Task score oscillation (pass/fail/pass) |
 | 5 consecutive non-zero exits | 3 consecutive non-zone-kill crashes |
 
-The threshold is lowered from ralph's 5 to 3 for crashes because harness sessions are heavier than ralph iterations (minutes vs. seconds), so the waste cost of each retry is higher.
+The threshold is lowered from ralph's 5 to 3 for crashes because rein sessions are heavier than ralph iterations (minutes vs. seconds), so the waste cost of each retry is higher.
 
-The harness currently has stagnation detection listed as "planned" in the [Ralph Wiggum synthesis](../../ralph_wiggum_deep_dive/00_synthesis.md) and [ralph-orchestrator synthesis](../00_synthesis.md) but with no design specification. This proposal provides a concrete, tested design adapted from ralph's production implementation.
+Rein currently has stagnation detection listed as "planned" in the [Ralph Wiggum synthesis](../../ralph_wiggum_deep_dive/00_synthesis.md) and [ralph-orchestrator synthesis](../00_synthesis.md) but with no design specification. This proposal provides a concrete, tested design adapted from ralph's production implementation.
 
 ## Source References
 

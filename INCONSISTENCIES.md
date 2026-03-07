@@ -1,4 +1,4 @@
-# Agentic Harness — Inconsistency & Gap Analysis
+# Rein — Inconsistency & Gap Analysis
 
 Cross-document review of all seven specification files, with focus on greenfield vs brownfield support, internal contradictions, and undocumented edge cases.
 
@@ -40,10 +40,10 @@ Cross-document review of all seven specification files, with focus on greenfield
 
 ### ~~6. Context window monitoring is a phantom feature~~ — RESOLVED
 
-**Status:** Resolved. Context pressure monitoring is now the **core feature** of the harness, not a phantom. Complete redesign:
+**Status:** Resolved. Context pressure monitoring is now the **core feature** of rein, not a phantom. Complete redesign:
 
 - **BRIEF.md** reframed: context pressure is the primary operational metric, elevated to its own pillar ("Five Pillars" instead of four). Token budget repositioned as a complementary cost constraint.
-- **SESSIONS.md** completely rewritten: Step 4 (MONITOR) is now the defining step. Full protocol documented: pressure zones (Green 0–60%, Yellow 60–80%, Red >80% — configurable globally and per-model), zone actions (Yellow = graceful stop + harness wrap-up, Red = immediate kill + harness wrap-up), per-agent measurement capabilities, degraded mode for agents without mid-run tokens, harness wrap-up protocol, post-kill summary agent, and agent prompt engineering for defense in depth.
+- **SESSIONS.md** completely rewritten: Step 4 (MONITOR) is now the defining step. Full protocol documented: pressure zones (Green 0–60%, Yellow 60–80%, Red >80% — configurable globally and per-model), zone actions (Yellow = graceful stop + rein wrap-up, Red = immediate kill + rein wrap-up), per-agent measurement capabilities, degraded mode for agents without mid-run tokens, rein wrap-up protocol, post-kill summary agent, and agent prompt engineering for defense in depth.
 - **TOKENS.md** now defines `ContextPressure` and `ZoneConfig` data structures, model context window lookup (config-based with agent-reported override for Claude).
 - **AGENTS.md** cross-agent table corrected: Claude and Gemini both support `--output-format stream-json` (not "Single JSON object"). Streaming event types documented per agent. Mid-run token availability: Claude (yes, except extended thinking), Codex (yes, per-turn deltas), Gemini (no — tokens only in final event, OpenTelemetry as future path). Signal behavior documented (SIGINT/SIGTERM per agent).
 - **ARCHITECTURE.md** updated: system diagram shows Pressure Monitor subsystem, execution flow includes real-time monitoring loop with zone branching, project structure includes `monitor.py`.
@@ -60,7 +60,7 @@ Cross-document review of all seven specification files, with focus on greenfield
 
 Claude's invocation includes `--max-turns 50`. Neither Codex nor Gemini expose an equivalent CLI flag. Gemini has `maxSessionTurns` in settings.json but it is not a CLI parameter the adapter can set per-task.
 
-**Mitigated by #6 resolution:** The context pressure monitor now provides a universal guardrail that bounds execution regardless of turn limits. The harness reads NDJSON/JSONL streams in real-time for Claude and Codex, classifies context pressure into zones, and intervenes with hard kills (Yellow = graceful stop after current turn, Red = immediate SIGTERM/SIGKILL). This makes `--max-turns` a defense-in-depth measure for Claude rather than the sole safeguard. Gemini operates in degraded mode (post-completion monitoring only) but is still bounded by `timeout_seconds`.
+**Mitigated by #6 resolution:** The context pressure monitor now provides a universal guardrail that bounds execution regardless of turn limits. Rein reads NDJSON/JSONL streams in real-time for Claude and Codex, classifies context pressure into zones, and intervenes with hard kills (Yellow = graceful stop after current turn, Red = immediate SIGTERM/SIGKILL). This makes `--max-turns` a defense-in-depth measure for Claude rather than the sole safeguard. Gemini operates in degraded mode (post-completion monitoring only) but is still bounded by `timeout_seconds`.
 
 **Remaining gap:** The asymmetry is cosmetic for Claude and Codex (context pressure is the real guardrail), but Gemini lacks both mid-run token visibility and a CLI turn limit — it relies solely on `timeout_seconds` and post-completion budget analysis. A `max_turns` field on `TaskDefinition` would still be useful for agents that support it.
 
@@ -78,7 +78,7 @@ Claude's invocation includes `--max-turns 50`. Neither Codex nor Gemini expose a
 - **Report field:** `termination_reason` added to the report schema with enum values: `completed`, `timed_out`, `context_pressure`, `error`. Replaces the proposed `timed_out: bool` with a richer enum.
 - **Shared procedure:** The same termination procedure is used by both context pressure zone actions and wall-clock timeout, with two modes (graceful for yellow zone, immediate for red zone and timeout).
 
-Cross-references: ARCHITECTURE.md (Subprocess Termination Procedure, execution flow step 6), SESSIONS.md (Timeout subsection, Zone Actions, Harness Wrap-Up Protocol), REPORTS.md (`termination_reason` field), TASKS.md (`timeout_seconds` field description), AGENTS.md (Timeout behavior row in cross-agent table).
+Cross-references: ARCHITECTURE.md (Subprocess Termination Procedure, execution flow step 6), SESSIONS.md (Timeout subsection, Zone Actions, Rein Wrap-Up Protocol), REPORTS.md (`termination_reason` field), TASKS.md (`timeout_seconds` field description), AGENTS.md (Timeout behavior row in cross-agent table).
 
 ---
 
@@ -133,9 +133,9 @@ Two issues:
 
 **Documents:** All
 
-- SESSIONS.md line 9: "A 'session' in the harness is a single task execution"
+- SESSIONS.md line 9: "A 'session' in rein is a single task execution"
 - SESSIONS.md line 107: "Session Continuation" implies a session can span multiple executions
-- README.md/ARCHITECTURE.md: `harness run` could mean one task or many (directory scan)
+- README.md/ARCHITECTURE.md: `rein run` could mean one task or many (directory scan)
 - BRIEF.md line 47: "dispatching one task to one agent at a time"
 
 "Session", "run", and "execution" are used interchangeably with subtly different scopes. The most confusing overlap: a "session" is defined as single-execution, but "session continuation" implies multi-execution sessions.
@@ -143,7 +143,7 @@ Two issues:
 **Fix:** Define terms once in a glossary (ARCHITECTURE.md or BRIEF.md):
 
 - **Task**: a unit of work defined by a JSON/YAML file
-- **Run**: a single invocation of `harness run`, which may dispatch multiple tasks
+- **Run**: a single invocation of `rein run`, which may dispatch multiple tasks
 - **Execution**: one task dispatched to one agent in one sandbox
 - **Session**: the agent's conversation context within an execution; may be continued across executions via `--resume`/`--continue`
 
@@ -155,7 +155,7 @@ Two issues:
 
 AGENTS.md line 97 states the Claude adapter "must unset `CLAUDECODE` or pass a clean env dict to the subprocess." This requirement appears nowhere else — not in ARCHITECTURE.md's execution isolation section, not in the adapter protocol, not in any cross-cutting concerns section.
 
-A developer running the harness from within a Claude Code session (a plausible workflow) would get an opaque failure. The docs also don't define what a "clean env dict" contains — a fully clean env would break `PATH`, `HOME`, `CODEX_API_KEY`, etc.
+A developer running rein from within a Claude Code session (a plausible workflow) would get an opaque failure. The docs also don't define what a "clean env dict" contains — a fully clean env would break `PATH`, `HOME`, `CODEX_API_KEY`, etc.
 
 **Fix:** Move environment variable handling to ARCHITECTURE.md as a cross-cutting concern under Execution Isolation. Specify that adapters copy `os.environ` and delete known conflict variables. Audit Codex and Gemini for analogous env var conflicts.
 
@@ -185,7 +185,7 @@ ARCHITECTURE.md line 195 lists `--parallel` in the CLI options table with the no
 
 ### 16. TASKS_YAML.md written in present tense
 
-Despite the "Status: Planned" banner, the document uses present tense throughout and shows working command examples like `harness run -t tasks/example_fizzbuzz.yaml -a claude`.
+Despite the "Status: Planned" banner, the document uses present tense throughout and shows working command examples like `rein run -t tasks/example_fizzbuzz.yaml -a claude`.
 
 **Fix:** Use future tense consistently, or add `[planned]` markers to command examples.
 
@@ -218,7 +218,7 @@ AGENTS.md documents both flags for Codex:
 - `--full-auto`: "Auto-approve edits (combines approvals + workspace-write sandbox)"
 - `--yolo`: "Remove all safeguards"
 
-The invocation example uses `--full-auto`. The cross-agent table maps Codex auto-approve to `--full-auto`. But `--yolo` is more permissive. The harness should document which one it uses and why.
+The invocation example uses `--full-auto`. The cross-agent table maps Codex auto-approve to `--full-auto`. But `--yolo` is more permissive. Rein should document which one it uses and why.
 
 **Fix:** State explicitly which flag the adapter uses. If `--full-auto` is chosen for safety, document why `--yolo` is not used despite Gemini's adapter using `--yolo`.
 

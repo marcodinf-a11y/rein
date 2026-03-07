@@ -16,7 +16,7 @@ The following section is proposed for addition to SESSIONS.md, after the "Stagna
 
 > **Status: Planned.** Requires multi-task sequential execution.
 
-In multi-task workflows, the harness runs `validation_commands` after each session — not just after the final session. This catches regressions early: if session 2 breaks what session 1 built, the harness detects this before sessions 3–N waste compute.
+In multi-task workflows, rein runs `validation_commands` after each session — not just after the final session. This catches regressions early: if session 2 breaks what session 1 built, rein detects this before sessions 3–N waste compute.
 
 #### Protocol
 
@@ -38,13 +38,13 @@ After each session completes:
 
 When inter-session validation fails:
 
-- **Last-good-state preservation:** The sandbox state from the last session where all validations passed is preserved. The harness commits before each new session starts, so `git reset` to the last-good commit is always available.
+- **Last-good-state preservation:** The sandbox state from the last session where all validations passed is preserved. Rein commits before each new session starts, so `git reset` to the last-good commit is always available.
 - **Report includes:** which task's validation failed, whether it was the current task (new failure) or a prior task (regression), the validation output
 - **No automatic retry:** Stagnation detection (proposal 02) handles retries. Inter-session validation is a gate, not a retry mechanism.
 
 #### Cumulative Validation
 
-The key distinction from the current design: validation is **cumulative**, not per-task. After session N, the harness validates all tasks T1 through TN, not just TN. This ensures that later tasks do not silently break earlier work.
+The key distinction from the current design: validation is **cumulative**, not per-task. After session N, rein validates all tasks T1 through TN, not just TN. This ensures that later tasks do not silently break earlier work.
 
 ```json
 {
@@ -87,13 +87,13 @@ gates:
 
 This catches regressions between iterations — functionally identical to the proposed inter-session validation. The key insight from ralph: **validation between execution units is more valuable than validation only at the end**, because it bounds the wasted compute from regressions.
 
-The harness adaptation differs from ralph's gates in two ways:
+Rein adaptation differs from ralph's gates in two ways:
 
-1. **Cumulative validation.** Ralph gates run the same commands every iteration. The harness runs all prior tasks' validations, catching regressions that a single fixed gate would miss.
+1. **Cumulative validation.** Ralph gates run the same commands every iteration. Rein runs all prior tasks' validations, catching regressions that a single fixed gate would miss.
 
-2. **Last-good-state preservation.** Ralph's `block` action prevents the next iteration but doesn't preserve state. The harness commits before each session, enabling rollback to the last validated state.
+2. **Last-good-state preservation.** Ralph's `block` action prevents the next iteration but doesn't preserve state. Rein commits before each session, enabling rollback to the last validated state.
 
-The current harness validates only after the final session. For a 5-task workflow where task 3 breaks task 1's output, the current design wastes tasks 4 and 5 before discovering the regression. Inter-session validation would catch it immediately after task 3.
+Currently rein validates only after the final session. For a 5-task workflow where task 3 breaks task 1's output, the current design wastes tasks 4 and 5 before discovering the regression. Inter-session validation would catch it immediately after task 3.
 
 ## Source References
 

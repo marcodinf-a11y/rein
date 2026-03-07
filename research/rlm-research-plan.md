@@ -27,7 +27,7 @@ Paper: https://arxiv.org/abs/2512.24601
 - [x] Position RLMs in the broader landscape of agentic code execution
 
 ## Phase 4: Practical Implications
-- [x] Assess applicability to the agentic harness project
+- [x] Assess applicability to rein
 - [x] Identify which tasks/benchmarks RLMs excel at vs. struggle with
 - [x] Evaluate computational overhead of recursive calls
 - [x] Consider token efficiency: does REPL offloading actually save tokens?

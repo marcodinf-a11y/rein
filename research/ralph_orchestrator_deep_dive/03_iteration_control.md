@@ -2,7 +2,7 @@
 
 **Deep Dive Document 03 | March 2026**
 
-How ralph-orchestrator decides when to continue, stop, or intervene. Compared against the harness's quality gate and token budget.
+How ralph-orchestrator decides when to continue, stop, or intervene. Compared against Rein's quality gate and token budget.
 
 ---
 
@@ -111,15 +111,15 @@ Actions on failure:
 - `block` — prevents next iteration until gate passes
 - `warn` — logs warning, continues anyway
 
-This is functionally similar to the harness's `validation_commands` but runs *between* iterations rather than *after* the final iteration. Ralph validates continuously; the harness validates at the end.
+This is functionally similar to Rein's `validation_commands` but runs *between* iterations rather than *after* the final iteration. Ralph validates continuously; rein validates at the end.
 
 Source: `gates.rs` in ralph-core, `ralph.yml` examples.
 
 ---
 
-## 6. Comparison with the Harness
+## 6. Comparison with Rein
 
-| Dimension | ralph-orchestrator | Agentic Harness |
+| Dimension | ralph-orchestrator | Rein |
 |-----------|-------------------|----------------|
 | **Completion signal** | `ralph emit LOOP_COMPLETE` (JSONL event) | Validation commands (exit code) |
 | **Completion validation** | Required events must be seen first | All validation commands must pass |
@@ -132,7 +132,7 @@ Source: `gates.rs` in ralph-core, `ralph.yml` examples.
 | **Inter-iteration validation** | Backpressure gates | Not applicable (single session) |
 | **Quality scoring** | Pass/fail (gate exit codes) | Binary (0.0 or 1.0) |
 
-**Key insight:** Ralph trades depth for breadth — many short iterations with inter-iteration validation. The harness trades breadth for depth — one monitored session per task with real-time intervention. Ralph's stagnation detection is more mature than the harness's (which is planned but not implemented). The harness's mid-iteration control is more mature than Ralph's (which has none).
+**Key insight:** Ralph trades depth for breadth — many short iterations with inter-iteration validation. Rein trades breadth for depth — one monitored session per task with real-time intervention. Ralph's stagnation detection is more mature than Rein's (which is planned but not implemented). Rein's mid-iteration control is more mature than Ralph's (which has none).
 
 ---
 
@@ -140,5 +140,5 @@ Source: `gates.rs` in ralph-core, `ralph.yml` examples.
 
 - github.com/mikeyobrien/ralph-orchestrator (v2.7.0)
 - Source files: `run_loop_impl()`, `event_loop.rs`, `loop_state.rs`, `termination.rs`, `gates.rs`
-- SESSIONS.md, ARCHITECTURE.md (agentic harness)
+- SESSIONS.md, ARCHITECTURE.md (rein)
 - research/ralph_wiggum_deep_dive/04_failure_modes.md

@@ -2,7 +2,7 @@
 
 **Deep Dive Document 02 | March 2026**
 
-How Principal Skinner proposes to intercept agent actions before they reach the OS, how Sondera/OpenClaw implements this in practice, and why the harness's containment model may be the better bet.
+How Principal Skinner proposes to intercept agent actions before they reach the OS, how Sondera/OpenClaw implements this in practice, and why Rein's containment model may be the better bet.
 
 ---
 
@@ -57,9 +57,9 @@ Allowlisting (only permit known-safe commands) is more defensible but severely c
 
 ## 4. Interception vs. Containment: Two Philosophies
 
-The harness and Principal Skinner approach the same problem from opposite directions:
+Rein and Principal Skinner approach the same problem from opposite directions:
 
-| Dimension | Interception (Principal Skinner / Sondera) | Containment (Harness) |
+| Dimension | Interception (Principal Skinner / Sondera) | Containment (Rein) |
 |-----------|------------------------------------------|----------------------|
 | **Philosophy** | Inspect each command, allow/deny | Let the agent do anything inside the sandbox, evaluate the result |
 | **Enforcement** | Pre-execution policy check | Post-execution validation + sandbox isolation |
@@ -70,7 +70,7 @@ The harness and Principal Skinner approach the same problem from opposite direct
 | **Data exfiltration** | Can block known patterns (credential file reads) | Not prevented unless sandbox has network isolation |
 | **Network access** | Can block specific URLs/endpoints | Not restricted by default |
 
-**The harness's containment model is simpler and harder to bypass.** The agent operates in a worktree or tempdir. Even if it runs `rm -rf /`, it destroys the sandbox, not the main working tree. The harness captures diffs and artifacts before cleanup. The blast radius is bounded by construction, not by policy completeness.
+**Rein's containment model is simpler and harder to bypass.** The agent operates in a worktree or tempdir. Even if it runs `rm -rf /`, it destroys the sandbox, not the main working tree. Rein captures diffs and artifacts before cleanup. The blast radius is bounded by construction, not by policy completeness.
 
 **The gap:** Containment does not prevent data exfiltration. An agent in a sandbox can still `curl` credentials to an external server. It does not prevent network-based attacks. For local development on a developer's machine, this is acceptable — the developer trusts their own network. For enterprise or multi-tenant deployments, it is not.
 
@@ -85,17 +85,17 @@ Before building custom tool-use interception, consider what Claude Code already 
 - **Permission modes:** `ask` (prompt for every tool call), auto-approve with allowlist (permit specific tools/patterns).
 - **Directory-scoped allowlists:** Restrict file operations to specific directories.
 
-The harness does not need to build its own interception layer. Claude Code hooks + the harness's sandbox isolation cover the gap:
+Rein does not need to build its own interception layer. Claude Code hooks + Rein's sandbox isolation cover the gap:
 
 1. **Claude Code hooks** provide pre-execution interception for high-risk commands (PreToolUse)
-2. **The harness's sandbox** contains blast radius regardless of what passes through hooks
-3. **The harness's quality gate** evaluates the result post-execution
+2. **Rein's sandbox** contains blast radius regardless of what passes through hooks
+3. **Rein's quality gate** evaluates the result post-execution
 
 This is defense in depth without custom policy engines.
 
 ---
 
-## 6. Should the Harness Add Tool-Use Interception?
+## 6. Should Rein Add Tool-Use Interception?
 
 **No — not as a built-in feature.**
 
@@ -108,17 +108,17 @@ The cost-benefit analysis:
 | **Maintenance burden** | Ongoing — every new tool, command, or agent behavior requires rule updates |
 | **Alternative** | Claude Code hooks (already exist, maintained by Anthropic) |
 
-**For local/solo development:** The harness's sandbox (worktree/tempdir/copy) + subprocess isolation (SIGTERM/SIGKILL) + quality gate (validation commands) is sufficient. The agent cannot damage the main working tree. If it produces garbage, the quality gate catches it.
+**For local/solo development:** Rein's sandbox (worktree/tempdir/copy) + subprocess isolation (SIGTERM/SIGKILL) + quality gate (validation commands) is sufficient. The agent cannot damage the main working tree. If it produces garbage, the quality gate catches it.
 
-**For enterprise/multi-tenant:** Tool-use interception becomes more important, but this should be handled by the deployment platform (Firecracker, gVisor, Docker with seccomp profiles), not by the harness itself. The harness is an orchestrator, not a security boundary.
+**For enterprise/multi-tenant:** Tool-use interception becomes more important, but this should be handled by the deployment platform (Firecracker, gVisor, Docker with seccomp profiles), not by rein itself. Rein is an orchestrator, not a security boundary.
 
-**The one exception:** If the harness adds network isolation to its sandbox model (blocking outbound network from agent subprocesses), it closes the data exfiltration gap without needing command-level interception. This is a single configuration change (bubblewrap `--unshare-net` or Docker `--network none`), not a policy engine.
+**The one exception:** If rein adds network isolation to its sandbox model (blocking outbound network from agent subprocesses), it closes the data exfiltration gap without needing command-level interception. This is a single configuration change (bubblewrap `--unshare-net` or Docker `--network none`), not a policy engine.
 
 ---
 
 ## 7. Comparison Summary
 
-| Capability | Principal Skinner | Sondera/OpenClaw | Harness | Claude Code |
+| Capability | Principal Skinner | Sondera/OpenClaw | Rein | Claude Code |
 |-----------|------------------|-----------------|---------|-------------|
 | Pre-execution interception | Proposed (no code) | Implemented (Cedar) | No | Yes (hooks) |
 | Post-execution evaluation | Not discussed | POST_TOOL redaction | Quality gate | No |
@@ -132,11 +132,11 @@ The cost-benefit analysis:
 
 ## 8. Recommendations
 
-**Now:** Document that Claude Code hooks (PreToolUse) provide the interception point Principal Skinner describes, making custom interception unnecessary for the harness.
+**Now:** Document that Claude Code hooks (PreToolUse) provide the interception point Principal Skinner describes, making custom interception unnecessary for rein.
 
 **Next:** Add `--unshare-net` (bubblewrap) or `--network none` (Docker) as an optional sandbox flag to close the data exfiltration gap. This is one line of configuration, not a policy engine.
 
-**Never:** Build a custom policy language or maintain command blocklists. This is Sondera's job, not the harness's. The harness's value is in orchestration (context pressure, quality gates, structured evaluation), not in security policy enforcement.
+**Never:** Build a custom policy language or maintain command blocklists. This is Sondera's job, not Rein's. Rein's value is in orchestration (context pressure, quality gates, structured evaluation), not in security policy enforcement.
 
 ---
 
@@ -147,4 +147,4 @@ The cost-benefit analysis:
 - OWASP Agentic Security Initiative, ASI02 (Tool Misuse)
 - research/06_agent_sandboxing_isolation.md (bubblewrap, Seatbelt, Firecracker, gVisor)
 - Claude Code documentation: hooks system, permission model, sandbox runtime
-- Agentic Harness ARCHITECTURE.md, SESSIONS.md
+- Rein ARCHITECTURE.md, SESSIONS.md

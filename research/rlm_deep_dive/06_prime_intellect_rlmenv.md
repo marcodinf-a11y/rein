@@ -1,8 +1,8 @@
-# Prime Intellect's RLMEnv: Architecture, Capabilities, and Relevance to the Harness
+# Prime Intellect's RLMEnv: Architecture, Capabilities, and Relevance to Rein
 
 **Deep Dive Document 06 | March 2026**
 
-This document analyzes Prime Intellect's RLMEnv implementation — their production-grade extension of the base RLM library — and evaluates which patterns are worth adopting in the agentic harness.
+This document analyzes Prime Intellect's RLMEnv implementation — their production-grade extension of the base RLM library — and evaluates which patterns are worth adopting in rein.
 
 ---
 
@@ -36,16 +36,16 @@ The most distinctive feature RLMEnv adds is `llm_batch` — a REPL-exposed funct
 
 This is **true parallelism**, not batched sequential processing. The stagger parameters exist specifically to manage API rate limits and prevent thundering-herd problems when many sub-queries launch simultaneously ([rlm_env.py source](https://github.com/PrimeIntellect-ai/verifiers/blob/main/verifiers/envs/experimental/rlm_env.py)).
 
-**Comparison to the harness's `--parallel` flag:** The harness's parallel dispatch operates at the task level — multiple independent tasks run in separate agent sessions simultaneously. `llm_batch` operates within a single task, allowing one agent to fan out sub-queries as part of its reasoning process. These are complementary mechanisms at different granularity levels:
+**Comparison to Rein's `--parallel` flag:** Rein's parallel dispatch operates at the task level — multiple independent tasks run in separate agent sessions simultaneously. `llm_batch` operates within a single task, allowing one agent to fan out sub-queries as part of its reasoning process. These are complementary mechanisms at different granularity levels:
 
-| Dimension | Harness `--parallel` | RLMEnv `llm_batch` |
+| Dimension | Rein `--parallel` | RLMEnv `llm_batch` |
 |-----------|---------------------|---------------------|
 | Granularity | Task-level | Sub-query within a task |
 | Who decides the split | The operator (task list) | The model (at inference time) |
 | Context sharing | None (independent sessions) | Shared via REPL variables |
 | Result aggregation | Artifacts in git | Model code in REPL |
 
-The harness could benefit from a similar sub-query fan-out mechanism for tasks that naturally decompose (e.g., reviewing multiple files, running multiple test suites). This would not require adopting the full RLM paradigm — just exposing a parallel LLM call primitive to the agent.
+Rein could benefit from a similar sub-query fan-out mechanism for tasks that naturally decompose (e.g., reviewing multiple files, running multiple test suites). This would not require adopting the full RLM paradigm — just exposing a parallel LLM call primitive to the agent.
 
 ---
 
@@ -77,16 +77,16 @@ Prime Intellect's [verifiers](https://github.com/PrimeIntellect-ai/verifiers) li
 
 3. **Sandbox isolation.** All code execution during verification happens in sandboxed environments, preventing side effects between evaluation runs.
 
-**Comparison to the harness's quality gate:**
+**Comparison to Rein's quality gate:**
 
-| Aspect | Harness Quality Gate | Prime Intellect Verifiers |
+| Aspect | Rein Quality Gate | Prime Intellect Verifiers |
 |--------|---------------------|--------------------------|
 | Scoring | Binary (pass/fail) | Continuous reward signal (0.0-1.0) |
 | Validation methods | Test commands, review agent, lint | Test case execution in sandboxes |
 | Purpose | Ship/no-ship decision | Training signal for RL |
 | Feedback loop | To operator (retry or accept) | To model (gradient update) |
 
-The harness's quality gate and Prime Intellect's verifiers serve fundamentally different purposes — one gates deployment, the other generates training signal. However, the answer-variable protocol is a pattern worth noting: requiring the agent to explicitly declare its output in a structured location (rather than parsing it from conversation) reduces verification brittleness.
+Rein's quality gate and Prime Intellect's verifiers serve fundamentally different purposes — one gates deployment, the other generates training signal. However, the answer-variable protocol is a pattern worth noting: requiring the agent to explicitly declare its output in a structured location (rather than parsing it from conversation) reduces verification brittleness.
 
 ---
 
@@ -116,40 +116,40 @@ The [Environments Hub](https://www.primeintellect.ai/blog/environments) is a com
 |--------|----------------|-------------------|
 | Base RLM (alexzhang13) | LocalREPL, DockerREPL, Modal, E2B | Inference-focused, user-managed |
 | RLMEnv (Prime Intellect) | Prime Sandboxes (managed), local | Training-focused, managed infrastructure |
-| Harness | tempdir, worktree, copy | Git-integrated, workspace isolation |
+| Rein | tempdir, worktree, copy | Git-integrated, workspace isolation |
 
 **Prime Sandboxes** are managed cloud sandboxes launching in beta, designed for high-throughput secure code execution. The key innovation is scale — 4,000+ concurrent sandboxes — which is necessary for RL training where thousands of rollouts must execute in parallel. This is infrastructure-specific to Prime Intellect's training platform and not directly transferable.
 
-The harness's sandbox model (tempdir/worktree/copy) serves a different purpose: isolating agent workspaces from the main repository during development tasks. The harness does not need thousands of concurrent sandboxes because it runs individual development tasks, not training rollouts.
+Rein's sandbox model (tempdir/worktree/copy) serves a different purpose: isolating agent workspaces from the main repository during development tasks. Rein does not need thousands of concurrent sandboxes because it runs individual development tasks, not training rollouts.
 
-**Innovation worth noting:** The Environments Hub's approach of packaging environments as installable Python wheels with standardized interfaces is a clean distribution model. If the harness were to support pluggable evaluation environments, this packaging pattern would be worth considering.
+**Innovation worth noting:** The Environments Hub's approach of packaging environments as installable Python wheels with standardized interfaces is a clean distribution model. If rein were to support pluggable evaluation environments, this packaging pattern would be worth considering.
 
 ---
 
-## 7. Key Patterns for the Harness
+## 7. Key Patterns for Rein
 
 ### Worth Adopting
 
-1. **Sub-query fan-out primitive.** The `llm_batch` pattern of letting an agent spawn parallel sub-queries within a single task is directly applicable. For the harness, this could manifest as a tool that lets the agent dispatch multiple file reviews, test runs, or analysis queries in parallel, with results collected back into the conversation. This is distinct from `--parallel` (which parallelizes entire tasks) and would improve throughput on decomposable subtasks.
+1. **Sub-query fan-out primitive.** The `llm_batch` pattern of letting an agent spawn parallel sub-queries within a single task is directly applicable. For rein, this could manifest as a tool that lets the agent dispatch multiple file reviews, test runs, or analysis queries in parallel, with results collected back into the conversation. This is distinct from `--parallel` (which parallelizes entire tasks) and would improve throughput on decomposable subtasks.
 
-2. **Structured answer protocol.** Requiring the agent to write its output to a designated location (answer variable, specific file, structured format) rather than extracting it from free-form conversation output. The harness's quality gate already partially does this via test commands, but formalizing "the agent must produce output in location X" would reduce gate fragility.
+2. **Structured answer protocol.** Requiring the agent to write its output to a designated location (answer variable, specific file, structured format) rather than extracting it from free-form conversation output. Rein's quality gate already partially does this via test commands, but formalizing "the agent must produce output in location X" would reduce gate fragility.
 
-3. **Tool delegation separation.** The pattern of giving the orchestrating model minimal tools (just code execution + sub-LLM spawning) while pushing heavy tools to sub-models is a useful design principle. For the harness, this could inform how review agents are structured — the review agent should have read-only tools, not the full tool set of the implementation agent.
+3. **Tool delegation separation.** The pattern of giving the orchestrating model minimal tools (just code execution + sub-LLM spawning) while pushing heavy tools to sub-models is a useful design principle. For rein, this could inform how review agents are structured — the review agent should have read-only tools, not the full tool set of the implementation agent.
 
 ### Not Transferable
 
-1. **Prime Sandboxes at scale.** The 4,000+ concurrent sandbox infrastructure is specific to RL training workloads. The harness's workspace isolation (tempdir/worktree/copy) is appropriate for its use case.
+1. **Prime Sandboxes at scale.** The 4,000+ concurrent sandbox infrastructure is specific to RL training workloads. Rein's workspace isolation (tempdir/worktree/copy) is appropriate for its use case.
 
-2. **Reward signal generation.** The verifiers stack's continuous reward signals are for gradient-based RL training. The harness needs binary pass/fail gates, not differentiable reward functions.
+2. **Reward signal generation.** The verifiers stack's continuous reward signals are for gradient-based RL training. Rein needs binary pass/fail gates, not differentiable reward functions.
 
-3. **Environments Hub packaging.** While the wheel-based distribution is clean, the harness does not need a registry of pluggable environments. Its evaluation needs are met by the existing quality gate with configurable test commands.
+3. **Environments Hub packaging.** While the wheel-based distribution is clean, rein does not need a registry of pluggable environments. Its evaluation needs are met by the existing quality gate with configurable test commands.
 
-4. **RLM-native RL training.** Training models to natively use the RLM scaffold via RL is Prime Intellect's core research bet. This requires their training infrastructure (prime-rl, managed compute) and is not applicable to the harness, which consumes pre-trained models via API.
+4. **RLM-native RL training.** Training models to natively use the RLM scaffold via RL is Prime Intellect's core research bet. This requires their training infrastructure (prime-rl, managed compute) and is not applicable to rein, which consumes pre-trained models via API.
 
 ### Open Questions
 
-- If RL training with RLM scaffolding produces models that are materially better at context management, the harness would benefit simply by using those models — no architectural changes needed on the harness side.
-- The `llm_batch` fan-out pattern could be prototyped in the harness without adopting RLMEnv. A simple implementation would expose a "parallel review" tool that the agent can call with multiple file paths, dispatching concurrent LLM calls and collecting results.
+- If RL training with RLM scaffolding produces models that are materially better at context management, rein would benefit simply by using those models — no architectural changes needed on rein side.
+- The `llm_batch` fan-out pattern could be prototyped in rein without adopting RLMEnv. A simple implementation would expose a "parallel review" tool that the agent can call with multiple file paths, dispatching concurrent LLM calls and collecting results.
 
 ---
 

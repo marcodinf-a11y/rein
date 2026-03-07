@@ -1,12 +1,12 @@
-# Agentic Harness — Architecture
+# Rein — Architecture
 
 ## System Overview
 
-The harness is a Python CLI application that orchestrates AI coding agents with **context pressure monitoring** as its core function. It loads task definitions, creates isolated sandboxes, invokes agents as subprocesses, monitors their token consumption in real-time against the model's context window, and intervenes when pressure thresholds are crossed — ensuring work is persisted before quality degrades.
+Rein is a Python CLI application that orchestrates AI coding agents with **context pressure monitoring** as its core function. It loads task definitions, creates isolated sandboxes, invokes agents as subprocesses, monitors their token consumption in real-time against the model's context window, and intervenes when pressure thresholds are crossed — ensuring work is persisted before quality degrades.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                     harness CLI                          │
+│                      rein CLI                             │
 │                     (cli.py)                             │
 ├──────────────────────────────────────────────────────────┤
 │                    Orchestrator                          │
@@ -30,10 +30,10 @@ The harness is a Python CLI application that orchestrates AI coding agents with 
 ## Project Structure
 
 ```
-agentic_harness/
+rein/
     pyproject.toml
     src/
-        agentic_harness/
+        rein/
             __init__.py
             cli.py                  # Click-based CLI entrypoint
             runner.py               # Orchestrator: runs tasks against agents
@@ -60,6 +60,10 @@ agentic_harness/
 
 Loads a `TaskDefinition` from JSON and invokes the appropriate agent adapter. The orchestrator handles the full lifecycle: sandbox creation, agent invocation, output capture, validation, cleanup.
 
+**Task validation:** JSON is validated against the schema at load time. If the file is syntactically invalid or missing required fields (`id`, `name`, `prompt`), Rein fails immediately with the parse/validation error before any sandbox or subprocess work.
+
+**Pre-flight check:** Before creating a sandbox, the orchestrator calls `is_available()` on the resolved adapter. If the agent CLI is not found in `PATH`, Rein fails immediately with a clear error naming the missing binary and suggesting `rein list agents`. Authentication failures cannot be detected upfront (each agent authenticates differently) — they surface as subprocess errors with non-zero `exit_code`, `termination_reason=error`, and stderr captured in the report.
+
 ### 2. Execution Isolation (`sandbox.py`)
 
 Creates an isolated sandbox for each run based on the task's `workspace` configuration (see [TASKS.md — Workspace Types](TASKS.md#workspace-types)):
@@ -76,7 +80,7 @@ Artifacts and diffs are captured *before* the sandbox is cleaned up.
 
 #### Subprocess Termination Procedure
 
-A shared procedure used whenever the harness needs to kill an agent subprocess — whether triggered by context pressure zone actions or wall-clock timeout. Two modes:
+A shared procedure used whenever Rein needs to kill an agent subprocess — whether triggered by context pressure zone actions or wall-clock timeout. Two modes:
 
 | Mode | When Used | Behavior |
 |---|---|---|
@@ -101,12 +105,12 @@ A shared procedure used whenever the harness needs to kill an agent subprocess �
 
 ### 3. Context Pressure Monitor (`monitor.py`)
 
-The defining subsystem of the harness. Runs concurrently with the agent subprocess, reading the NDJSON/JSONL output stream line by line, computing context pressure after each turn, and triggering zone actions when thresholds are crossed.
+The defining subsystem of Rein. Runs concurrently with the agent subprocess, reading the NDJSON/JSONL output stream line by line, computing context pressure after each turn, and triggering zone actions when thresholds are crossed.
 
 - **Input:** Agent's stdout stream (NDJSON or JSONL), model context window size (from config or `modelUsage`), zone thresholds (from `ZoneConfig`)
 - **Output:** `ContextPressure` result (zone, utilization, measurement method), kill signal if threshold crossed
 - **Data structures:** `ContextPressure`, `ZoneConfig` — defined in [TOKENS.md](TOKENS.md)
-- **Zone actions:** Green → continue; Yellow → graceful stop + harness wrap-up; Red → immediate kill + harness wrap-up
+- **Zone actions:** Green → continue; Yellow → graceful stop + Rein wrap-up; Red → immediate kill + Rein wrap-up
 - **Degraded mode:** When mid-run tokens are unavailable (Gemini, Claude with extended thinking), the monitor reads the stream for tool/message events but can only compute pressure post-completion
 
 See [SESSIONS.md — Context Pressure Monitoring](SESSIONS.md#context-pressure-monitoring) for the full protocol.
@@ -115,9 +119,13 @@ See [SESSIONS.md — Context Pressure Monitoring](SESSIONS.md#context-pressure-m
 
 Each adapter parses the agent's stdout (JSON or JSONL), extracts the result text, and normalizes token usage into a unified model (see [TOKENS.md](TOKENS.md)). When the monitor has already parsed the stream (real-time mode), the capture step works from the buffered stream data rather than re-reading stdout. Raw output is preserved for debugging.
 
+**Parse failure fallback:** If NDJSON/JSONL parsing fails (malformed output, unexpected format, encoding errors), Rein captures whatever raw stdout/stderr was received and stores it in the report as `raw_output`. Token accounting and result text extraction are unavailable — `normalized_tokens` is null and `result_text` is empty. The report sets `termination_reason=error` and `parse_error` contains the exception message. Sandbox artifacts (files, diffs) are still captured normally — parse failure only affects stream-derived fields.
+
 ### 5. Evaluation (`evaluate.py`)
 
 Runs `validation_commands` in the sandbox after the agent finishes. Scoring is binary — all commands pass (score 1.0) or any fails (score 0.0). Results are written to a structured JSON report (see [REPORTS.md](REPORTS.md)).
+
+**Validation timeout:** Each validation command has a fixed 60-second timeout. If a command doesn't exit within 60 seconds, Rein kills it (SIGTERM → 5s grace → SIGKILL) and records it as failed.
 
 ## Agent Adapter Interface
 
@@ -161,12 +169,12 @@ Context pressure data structures — `ContextPressure`, `ZoneConfig`, and the mo
 5. Invoke agent CLI as subprocess in sandbox directory (stream-json mode)
 6. **Monitor stream in real-time** — parse NDJSON/JSONL line by line, compute context pressure per turn. Concurrently run wall-clock timer against `timeout_seconds`:
    - Green zone → continue reading stream
-   - Yellow zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (graceful); `termination_reason=context_pressure`; proceed to harness wrap-up (step 7a)
-   - Red zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=context_pressure`; proceed to harness wrap-up (step 7a)
+   - Yellow zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (graceful); `termination_reason=context_pressure`; proceed to Rein wrap-up (step 7a)
+   - Red zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=context_pressure`; proceed to Rein wrap-up (step 7a)
    - Degraded mode (no mid-run tokens) → read stream for events only, compute pressure post-completion
-   - Timeout → if wall-clock exceeds `timeout_seconds`, [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=timed_out`; proceed to harness wrap-up (step 7a)
+   - Timeout → if wall-clock exceeds `timeout_seconds`, [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=timed_out`; proceed to Rein wrap-up (step 7a)
 7. Parse final or partial output from stream buffer; normalize tokens into unified model
-   - 7a. *(If terminated by harness — context pressure or timeout)* **Harness wrap-up:** commit uncommitted changes, write run log, update PROGRESS.md, log termination metrics. Optionally dispatch post-kill summary agent (yellow zone only — not dispatched for red zone or timeout).
+   - 7a. *(If terminated by Rein — context pressure or timeout)* **Rein wrap-up:** commit uncommitted changes, write run log, update PROGRESS.md, log termination metrics. Optionally dispatch post-kill summary agent (yellow zone only — not dispatched for red zone or timeout).
 8. Capture diff and artifacts before sandbox cleanup
 9. Run validation commands in sandbox
 10. Generate evaluation result (including `ContextPressure` in report)
@@ -177,7 +185,7 @@ Context pressure data structures — `ContextPressure`, `ZoneConfig`, and the mo
 Built with [Click](https://click.palletsprojects.com/). Output formatting via [Rich](https://rich.readthedocs.io/).
 
 ```
-Usage: harness [OPTIONS] COMMAND [ARGS]...
+Usage: rein [OPTIONS] COMMAND [ARGS]...
 
 Commands:
   run       Run task(s) against agent(s)
@@ -185,7 +193,7 @@ Commands:
   report    Generate summary from results
 ```
 
-### `harness run`
+### `rein run`
 
 ```
 Options:
@@ -200,7 +208,7 @@ Options:
   --dry-run             Show what would execute without running
 ```
 
-### `harness list agents`
+### `rein list agents`
 
 ```
 claude-code    available    /home/user/.local/bin/claude (v2.1.63)
@@ -216,17 +224,17 @@ gemini-cli     available    /usr/bin/gemini (v0.16.0)
 | *(stdlib `json`)* | Task definition parsing |
 | `rich` | Terminal output formatting |
 
-Python 3.12+. No ML/AI libraries — the harness only *invokes* agents, it doesn't run models.
+Python 3.12+. Linux, macOS, and Windows. No ML/AI libraries — Rein only *invokes* agents, it doesn't run models.
 
 ## Why Python
 
-The harness is glue code — it launches subprocesses, parses JSON, writes reports. The choice of language matters less than in a performance-critical system, so the decision optimizes for development speed and ecosystem fit.
+Rein is glue code — it launches subprocesses, parses JSON, writes reports. The choice of language matters less than in a performance-critical system, so the decision optimizes for development speed and ecosystem fit.
 
-- **The workload is subprocess orchestration.** The agents are external CLIs. The harness calls them via `asyncio.create_subprocess_exec`, reads their stdout, and parses JSON. Python handles this fine — the agents are the bottleneck, not the harness.
+- **The workload is subprocess orchestration.** The agents are external CLIs. Rein calls them via `asyncio.create_subprocess_exec`, reads their stdout, and parses JSON. Python handles this fine — the agents are the bottleneck, not Rein.
 - **`click` + `rich` is a proven CLI stack.** These are mature, well-documented libraries that get a polished CLI with minimal code. No equivalent pairing exists in Go or Rust with the same productivity.
 - **Dataclasses and Protocols fit the domain.** `TaskDefinition`, `NormalizedTokenUsage`, and `AgentAdapter` map naturally to frozen dataclasses and structural typing. No framework or ORM needed.
 - **Audience alignment.** Developers using AI coding agents are likely comfortable reading and extending Python. Lower barrier to contribution.
-- **No runtime performance pressure.** The harness spends its time waiting for agents to finish. There is no hot loop, no high-throughput path, no latency-sensitive code.
+- **No runtime performance pressure.** Rein spends its time waiting for agents to finish. There is no hot loop, no high-throughput path, no latency-sensitive code.
 
 Go or Rust would offer single-binary distribution and avoid the Python runtime dependency. If distribution becomes a pain point, that tradeoff can be revisited.
 
@@ -239,4 +247,4 @@ The architecture supports multi-agent workflow composition from day one:
 - Per-task `agent`, `model`, and `effort` fields enable composition pipelines
 - The `--parallel` flag enables concurrent dispatch of different tasks
 
-MVP implements single-agent sequential execution only. Multi-agent parallel dispatch is a future extension.
+The current release implements single-agent sequential execution. See [ROADMAP.md](ROADMAP.md) for multi-agent plans.

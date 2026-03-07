@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document consolidates findings from ten research agents who independently analyzed Block's open-source Goose agent framework. It cross-references their conclusions, resolves contradictions, and extracts actionable insights for the agentic harness project.
+This document consolidates findings from ten research agents who independently analyzed Block's open-source Goose agent framework. It cross-references their conclusions, resolves contradictions, and extracts actionable insights for the rein project.
 
 For the detailed analysis, see the individual reports:
 - [01 Core Architecture](01_core_architecture.md) — Crate structure, agent loop, state, server mode
@@ -51,7 +51,7 @@ Agents 01, 06, and 09 independently confirm this is Goose's primary differentiat
 - Provider agnosticism (swap any LLM without code changes)
 - REST API server mode for programmatic embedding
 
-**Implication for harness:** Goose is the most natural agent to wrap in a harness — its `goosed` REST API and recipe system were designed for exactly this kind of programmatic, unattended use.
+**Implication for rein:** Goose is the most natural agent to wrap in rein — its `goosed` REST API and recipe system were designed for exactly this kind of programmatic, unattended use.
 
 ### 2. MCP Is Goose's Foundation, Not an Add-on
 
@@ -59,7 +59,7 @@ Agents 02 and 09 converge on this: Goose doesn't just "support" MCP — its enti
 
 Seven extension types exist: Builtin (in-process), Platform (privileged in-process), STDIO, SSE (deprecated), Streamable HTTP, Frontend, and InlinePython.
 
-**Implication for harness:** When wrapping Goose, the harness gets MCP compliance for free. Tool filtering (like Stripe's ~15-from-400 pattern) can be implemented at the recipe/extension config level.
+**Implication for rein:** When wrapping Goose, rein gets MCP compliance for free. Tool filtering (like Stripe's ~15-from-400 pattern) can be implemented at the recipe/extension config level.
 
 ### 3. The Recipe System Is Goose's "Blueprint Lite"
 
@@ -73,13 +73,13 @@ Agents 03 and 06 identify recipes as Goose's native orchestration primitive. Rec
 
 Key constraints: recipes are fully agentic (LLM decides control flow), unlike Stripe's Blueprints which interleave deterministic gates. No conditional branching, no deterministic nodes.
 
-**Implication for harness:** The harness's quality gate mechanism (lint → test → build between rounds) adds the deterministic interleaving that recipes lack. This is a genuine value-add over using Goose recipes alone.
+**Implication for rein:** Rein's quality gate mechanism (lint → test → build between rounds) adds the deterministic interleaving that recipes lack. This is a genuine value-add over using Goose recipes alone.
 
 ### 4. The Lead-Worker Pattern Is a Cost Optimization Worth Studying
 
 Agent 04 details this unique feature: `LeadWorkerProvider` uses a frontier model for the first N turns (default: 3), then switches to a cheaper model for routine work. Fallback triggers after 2 consecutive failures, using the lead for 2 recovery turns.
 
-**Implication for harness:** The harness could implement a similar pattern at the harness level — using a frontier model for initial code generation and a cheaper model for iterative CI fix rounds.
+**Implication for rein:** Rein could implement a similar pattern at rein level — using a frontier model for initial code generation and a cheaper model for iterative CI fix rounds.
 
 ### 5. Security Has a Critical Gap: No Linux Sandbox
 
@@ -93,7 +93,7 @@ Goose does have:
 
 But for unattended CI/CD execution, the lack of Linux sandboxing is a real risk.
 
-**Implication for harness:** The harness MUST provide its own isolation (worktree/tempdir/container) when running Goose. Do not rely on Goose's built-in security for unattended execution.
+**Implication for rein:** Rein MUST provide its own isolation (worktree/tempdir/container) when running Goose. Do not rely on Goose's built-in security for unattended execution.
 
 ### 6. Coding Quality Is Significantly Below Competitors
 
@@ -101,7 +101,7 @@ Agent 10 presents the most concerning finding: in a head-to-head benchmark, Goos
 
 Agents 09 and 10 both note this may reflect Goose's positioning as a "workflow orchestration platform" rather than a pure coding agent — but for coding tasks specifically, it significantly underperforms.
 
-**Implication for harness:** Goose should be supported but not relied upon as a primary coding agent. Its value for the harness is in model-agnostic comparison testing and workflow orchestration, not best-in-class code generation.
+**Implication for rein:** Goose should be supported but not relied upon as a primary coding agent. Its value for rein is in model-agnostic comparison testing and workflow orchestration, not best-in-class code generation.
 
 ---
 
@@ -109,11 +109,11 @@ Agents 09 and 10 both note this may reflect Goose's positioning as a "workflow o
 
 ### Platform vs Coding Agent
 
-Agent 08 describes Goose as pursuing a "Kubernetes-like standardization strategy" through AAIF and platform plays. Agent 10 warns this makes it a "jack of all trades, master of none." **Resolution:** Both are correct. Goose is strategically positioned as an agent platform (like Kubernetes is a container platform), not a best-in-class coding tool. This is a deliberate choice by Block, not a deficiency — but it means the harness should evaluate Goose on platform merits, not coding benchmarks.
+Agent 08 describes Goose as pursuing a "Kubernetes-like standardization strategy" through AAIF and platform plays. Agent 10 warns this makes it a "jack of all trades, master of none." **Resolution:** Both are correct. Goose is strategically positioned as an agent platform (like Kubernetes is a container platform), not a best-in-class coding tool. This is a deliberate choice by Block, not a deficiency — but it means rein should evaluate Goose on platform merits, not coding benchmarks.
 
 ### Scope Creep vs Comprehensive Platform
 
-Agent 10 lists the massive surface area (CLI + Electron + TUI + 20+ providers + recipes + subagents + extensions + benchmarking + marketplace + Docker + ACP + i18n) as a risk. Agent 08 frames the same breadth as "investment" backed by a dedicated Block team. **Resolution:** The breadth is sustainable with Block's team size but makes the project harder for external contributors to navigate. For harness purposes, only the CLI + goosed + core crate matter.
+Agent 10 lists the massive surface area (CLI + Electron + TUI + 20+ providers + recipes + subagents + extensions + benchmarking + marketplace + Docker + ACP + i18n) as a risk. Agent 08 frames the same breadth as "investment" backed by a dedicated Block team. **Resolution:** The breadth is sustainable with Block's team size but makes the project harder for external contributors to navigate. For rein purposes, only the CLI + goosed + core crate matter.
 
 ### MCP Lock-in Risk
 
@@ -172,18 +172,18 @@ The core loop in `agents/agent.rs` follows a ReAct pattern:
 
 ---
 
-## Goose for the Harness: Practical Assessment
+## Goose for Rein: Practical Assessment
 
-### Strengths as a Harness Target
+### Strengths as a Rein Target
 
 | Capability | Why It Matters |
 |-----------|---------------|
 | `goosed` REST API with SSE | Programmatic invocation without CLI parsing |
 | Recipe system | Pre-configured task templates with extension/model/prompt control |
 | Model agnosticism | Run the same task across Claude, GPT, Gemini, Ollama for comparison |
-| Lead-Worker pattern | Built-in cost optimization the harness can leverage |
+| Lead-Worker pattern | Built-in cost optimization rein can leverage |
 | MCP-native | All tools are MCP — consistent interface for tool filtering |
-| Apache 2.0 | No license constraints on harness integration |
+| Apache 2.0 | No license constraints on rein integration |
 | Headless mode (`goose run`) | Designed for unattended execution |
 | Subagent system | Built-in task delegation with bounded turns and tool subsets |
 
@@ -191,25 +191,25 @@ The core loop in `agents/agent.rs` follows a ReAct pattern:
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| No Linux sandbox | **High** | Harness provides isolation (worktree/tempdir/container) |
+| No Linux sandbox | **High** | Rein provides isolation (worktree/tempdir/container) |
 | Poor coding accuracy (5.2%) | **High** | Position as comparison agent, not primary; quality may depend on model choice |
-| Auto permission mode default | **Medium** | Harness overrides to restrict permissions via recipe config |
-| Context management issues | **Medium** | Harness's round mechanism with fresh context per round reduces pressure |
-| Rapid release cadence (2/week) | **Medium** | Pin versions in harness; test before upgrading |
+| Auto permission mode default | **Medium** | Rein overrides to restrict permissions via recipe config |
+| Context management issues | **Medium** | Rein's round mechanism with fresh context per round reduces pressure |
+| Rapid release cadence (2/week) | **Medium** | Pin versions in rein; test before upgrading |
 | goosed API still evolving (ACP transition) | **Medium** | Abstract behind adapter; support both REST and ACP |
-| Token counting inconsistencies | **Low** | Harness does its own token tracking |
+| Token counting inconsistencies | **Low** | Rein does its own token tracking |
 
 ### Recommended Adapter Strategy
 
 ```
-Harness Goose Adapter
+Rein Goose Adapter
   ├── Invocation: goosed REST API (POST /reply with SSE)
   ├── Task definition: Recipe YAML → goose run --recipe
   ├── Tool filtering: Extension config in recipe (enable only needed MCP tools)
   ├── Model selection: Recipe settings or GOOSE_PROVIDER/GOOSE_MODEL env vars
   ├── Output capture: SSE stream parsing for structured messages
-  ├── Isolation: Harness-provided (worktree/tempdir), NOT Goose's
-  ├── Max rounds: Recipe max_turns + harness round mechanism
+  ├── Isolation: Rein-provided (worktree/tempdir), NOT Goose's
+  ├── Max rounds: Recipe max_turns + rein round mechanism
   └── Cost tracking: Parse Usage from goosed response metadata
 ```
 
@@ -220,39 +220,39 @@ Harness Goose Adapter
 3. **Lead-Worker cost optimization** — Built-in frontier/cheap model switching.
 4. **Platform for experimentation** — Goose's flexibility makes it ideal for testing different orchestration strategies.
 
-### What Goose Lacks That the Harness Must Provide
+### What Goose Lacks That Rein Must Provide
 
-1. **Deterministic quality gates** — Goose's recipes are fully agentic. The harness adds lint/test/build gates between rounds.
-2. **OS-level isolation** — Non-negotiable for unattended CI/CD. The harness must wrap Goose in sandboxed execution.
-3. **Context pressure monitoring** — Goose's 80% autocompact is blunt. The harness should monitor context independently.
-4. **Structured output parsing** — Goose's SSE stream needs parsing into the harness's round/verdict model.
-5. **Quality assurance** — Given the 5.2% benchmark score, the harness should validate Goose outputs more aggressively.
+1. **Deterministic quality gates** — Goose's recipes are fully agentic. Rein adds lint/test/build gates between rounds.
+2. **OS-level isolation** — Non-negotiable for unattended CI/CD. Rein must wrap Goose in sandboxed execution.
+3. **Context pressure monitoring** — Goose's 80% autocompact is blunt. Rein should monitor context independently.
+4. **Structured output parsing** — Goose's SSE stream needs parsing into Rein's round/verdict model.
+5. **Quality assurance** — Given the 5.2% benchmark score, rein should validate Goose outputs more aggressively.
 
 ---
 
-## Key Findings for the Harness Project
+## Key Findings for the Rein Project
 
 ### Already Aligned
 
-| Harness Feature | Goose Equivalent | Notes |
+| Rein Feature | Goose Equivalent | Notes |
 |----------------|-----------------|-------|
 | Agent-agnostic adapter | goosed REST API | Clean programmatic interface |
-| Round mechanism | Recipe max_turns + retry config | Harness adds deterministic gates |
+| Round mechanism | Recipe max_turns + retry config | Rein adds deterministic gates |
 | Task definition | Recipe YAML | Compatible paradigms |
-| Workspace isolation | Basic Docker support | Harness adds worktree/tempdir |
-| Quality gate signals | None in Goose | Harness fills a real gap |
+| Workspace isolation | Basic Docker support | Rein adds worktree/tempdir |
+| Quality gate signals | None in Goose | Rein fills a real gap |
 
 ### Potential Enhancements (Informed by Deep Dive)
 
-1. **Recipe generation** — The harness could auto-generate Goose recipe YAML from `harness.toml` task definitions, mapping task type → extensions, model, constraints.
+1. **Recipe generation** — Rein could auto-generate Goose recipe YAML from `rein.toml` task definitions, mapping task type → extensions, model, constraints.
 
-2. **Lead-Worker at harness level** — Implement model switching across rounds (frontier model for initial generation, cheaper model for CI fix iterations), inspired by Goose's pattern but controlled by the harness.
+2. **Lead-Worker at rein level** — Implement model switching across rounds (frontier model for initial generation, cheaper model for CI fix iterations), inspired by Goose's pattern but controlled by rein.
 
-3. **MCP tool filtering** — Use recipe extension configs to implement per-task tool curation (Stripe's ~15-from-400 pattern), controlled by the harness rather than the agent.
+3. **MCP tool filtering** — Use recipe extension configs to implement per-task tool curation (Stripe's ~15-from-400 pattern), controlled by rein rather than the agent.
 
-4. **goosed health monitoring** — The harness adapter should monitor the goosed daemon for crashes, restarts, and resource exhaustion, since it's a long-running server process.
+4. **goosed health monitoring** — Rein adapter should monitor the goosed daemon for crashes, restarts, and resource exhaustion, since it's a long-running server process.
 
-5. **Benchmark-aware routing** — Given Goose's poor coding benchmarks, the harness could route coding-heavy tasks to Claude Code/Codex and workflow/orchestration tasks to Goose.
+5. **Benchmark-aware routing** — Given Goose's poor coding benchmarks, rein could route coding-heavy tasks to Claude Code/Codex and workflow/orchestration tasks to Goose.
 
 ---
 

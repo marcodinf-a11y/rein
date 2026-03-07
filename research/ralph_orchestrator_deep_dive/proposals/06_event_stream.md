@@ -6,7 +6,7 @@
 
 ---
 
-## Proposed Addition: Harness-Level Event Log
+## Proposed Addition: Rein-Level Event Log
 
 The following describes a proposed JSONL event log that complements the existing structured JSON report.
 
@@ -14,7 +14,7 @@ The following describes a proposed JSONL event log that complements the existing
 
 ### Event Stream
 
-The harness emits a JSONL event log alongside the structured JSON report. Each line is a self-contained JSON object representing a harness-level event during execution. The event log captures the *process* of execution — what happened and when — while the JSON report captures the *outcome*.
+Rein emits a JSONL event log alongside the structured JSON report. Each line is a self-contained JSON object representing a rein-level event during execution. The event log captures the *process* of execution — what happened and when — while the JSON report captures the *outcome*.
 
 #### Event Types
 
@@ -24,7 +24,7 @@ The harness emits a JSONL event log alongside the structured JSON report. Each l
 | `stream_parse` | Token usage updated from stream | `task_id`, `input_tokens`, `output_tokens`, `utilization_pct`, `zone` |
 | `zone_change` | Context pressure zone transitions | `task_id`, `from_zone`, `to_zone`, `utilization_pct`, `turn_number` |
 | `validation_run` | Validation command executed | `task_id`, `command`, `exit_code`, `duration_ms` |
-| `session_kill` | Harness terminates agent | `task_id`, `termination_reason`, `zone`, `signal_sent` |
+| `session_kill` | Rein terminates agent | `task_id`, `termination_reason`, `zone`, `signal_sent` |
 | `session_complete` | Session finished (any reason) | `task_id`, `exit_code`, `termination_reason`, `duration_seconds`, `total_tokens` |
 | `stagnation_detected` | Stagnation detector fires (proposal 02) | `task_id`, `stagnation_signal`, `details` |
 | `workflow_gate` | Inter-session validation (proposal 03) | `task_id`, `validations_run`, `all_passed`, `last_good_commit` |
@@ -91,7 +91,7 @@ In degraded mode (Gemini, Claude with extended thinking), `stream_parse` events 
 
 Ralph-orchestrator's JSONL event bus (`event_logger.rs`) is the most machine-readable artifact it produces. Each iteration appends events to `.ralph/events-{timestamp}.jsonl` with structured topics, payloads, and timestamps. The RPC API also emits `IterationStart`/`IterationEnd` telemetry for the web dashboard.
 
-The harness currently captures snapshots — a before state and an after state per session, compiled into the JSON report. It does not persist the timeline of what happened *during* execution. This means:
+Rein currently captures snapshots — a before state and an after state per session, compiled into the JSON report. It does not persist the timeline of what happened *during* execution. This means:
 
 1. **Debugging context pressure kills requires reading raw stream output.** With an event log, `zone_change` events provide a clean timeline of pressure escalation.
 
@@ -103,7 +103,7 @@ This is classified as "Next" priority because the event log's value increases si
 
 ## Source References
 
-- [Evaluation & Reporting](../04_evaluation_reporting.md) — Section 4 (ralph's machine-readable outputs), Section 7 (what the harness could learn)
+- [Evaluation & Reporting](../04_evaluation_reporting.md) — Section 4 (ralph's machine-readable outputs), Section 7 (what rein could learn)
 - [Ralph Orchestrator Synthesis](../00_synthesis.md) — Section 3.3 (JSONL event logging)
 - REPORTS.md — current report schema (snapshot model)
 - SESSIONS.md — context pressure monitoring protocol (source of events)

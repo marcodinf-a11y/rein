@@ -1,6 +1,6 @@
-# Agentic Harness — Quality Gate & Pipeline Configuration
+# Rein — Quality Gate & Pipeline Configuration
 
-How the harness evaluates agent output beyond pass/fail, manages retry rounds, and integrates review agents. Configuration lives in `harness.toml` at the project root.
+How rein evaluates agent output beyond pass/fail, manages retry rounds, and integrates review agents. Configuration lives in `rein.toml` at the project root.
 
 ---
 
@@ -8,26 +8,26 @@ How the harness evaluates agent output beyond pass/fail, manages retry rounds, a
 
 The quality gate and pipeline design is closely modeled on Stripe's **Minions** system — the most proven production-scale agentic CI/CD pipeline as of early 2026 (1,000+ merged PRs/week, zero human-written code). Key patterns adopted from Stripe:
 
-| Stripe Pattern | Harness Equivalent |
+| Stripe Pattern | Rein Equivalent |
 |----------------|-------------------|
 | **Blueprint pattern**: deterministic nodes (checkout, lint, test) + open-ended agent loops (coding) | Quality gate signals are the deterministic nodes; the agent run is the open-ended loop |
 | **Max 2 CI rounds per task** | Configurable `max_rounds` (default: 2) with structured feedback between rounds |
 | **Pre-warmed devboxes** (10s spin-up) | Sandbox isolation (worktree/tempdir/copy) with setup commands |
 | **Pull requests as approval gates** | Quality gate verdict controls acceptance; review agent provides the approval signal |
 | **Isolated from production/internet** | Sandbox with configurable network and filesystem restrictions |
-| **Invoked via Slack** | Invoked via CLI, git hooks, or any trigger (the harness is the execution engine, not the trigger) |
+| **Invoked via Slack** | Invoked via CLI, git hooks, or any trigger (rein is the execution engine, not the trigger) |
 
-Where the harness diverges from Stripe:
+Where rein diverges from Stripe:
 
-| Difference | Stripe | Harness |
+| Difference | Stripe | Rein |
 |------------|--------|---------|
 | **Scale** | Enterprise (thousands of engineers, dedicated infra team) | Solo/small-team (local-first, no infra dependency) |
 | **Agent** | Forked Block Goose agent + "Toolshed" MCP server (400+ tools) | Any CLI agent (Claude Code, Codex, Gemini) via adapter protocol |
-| **Trigger** | Slack bot | CLI, git hooks, or external trigger — harness is agnostic |
+| **Trigger** | Slack bot | CLI, git hooks, or external trigger — rein is agnostic |
 | **Context pressure** | Not documented | Core metric — real-time monitoring with zone-based intervention |
-| **Tool ecosystem** | Custom MCP server with 400+ internal tools | Standard MCP; tools are the agent's responsibility, not the harness's |
+| **Tool ecosystem** | Custom MCP server with 400+ internal tools | Standard MCP; tools are the agent's responsibility, not rein's |
 
-The Stripe model validates the core architectural bet: deterministic quality checks wrapped around an agent's creative work, with a hard cap on retry rounds to prevent token waste. The harness adapts this for individual developers and small teams without requiring enterprise infrastructure.
+The Stripe model validates the core architectural bet: deterministic quality checks wrapped around an agent's creative work, with a hard cap on retry rounds to prevent token waste. Rein adapts this for individual developers and small teams without requiring enterprise infrastructure.
 
 Sources: [Stripe Minions Part 1](https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents), [Stripe Minions Part 2](https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents-part-2)
 
@@ -35,31 +35,31 @@ Sources: [Stripe Minions Part 1](https://stripe.dev/blog/minions-stripes-one-sho
 
 ## Overview
 
-The quality gate aggregates multiple signals into a verdict before accepting agent output. Each signal checks one dimension of quality — tests, lint, diff scope, context pressure, code review. Signals are configurable per-project in `harness.toml`.
+The quality gate aggregates multiple signals into a verdict before accepting agent output. Each signal checks one dimension of quality — tests, lint, diff scope, context pressure, code review. Signals are configurable per-project in `rein.toml`.
 
-The gate operates after each round of agent work. If the verdict is `"fail"` and rounds remain, the harness dispatches a retry with feedback. If the verdict is `"pass"` or `"warn"`, or rounds are exhausted, the pipeline stops.
+The gate operates after each round of agent work. If the verdict is `"fail"` and rounds remain, rein dispatches a retry with feedback. If the verdict is `"pass"` or `"warn"`, or rounds are exhausted, the pipeline stops.
 
 ---
 
-## harness.toml
+## rein.toml
 
 ### Location and Discovery
 
-The harness looks for `harness.toml` in the following order:
+Rein looks for `rein.toml` in the following order:
 
 1. Path specified via `--config` CLI flag
 2. Current working directory
 3. Git repository root (if inside a git repo)
 
-If no `harness.toml` is found, the harness uses built-in defaults.
+If no `rein.toml` is found, rein uses built-in defaults.
 
 ### Reference from CLAUDE.md
 
 ```markdown
-## Harness Configuration
+## Rein Configuration
 
-This project uses the agentic harness for quality-gated agent workflows.
-See `harness.toml` for quality gate signals, context pressure thresholds, and defaults.
+This project uses the rein for quality-gated agent workflows.
+See `rein.toml` for quality gate signals, context pressure thresholds, and defaults.
 ```
 
 Any agent reading CLAUDE.md knows where to find the config. The toml itself is agent-agnostic.
@@ -67,16 +67,16 @@ Any agent reading CLAUDE.md knows where to find the config. The toml itself is a
 ### Resolution Order
 
 ```
-harness.toml defaults  <  task definition fields  <  CLI flags
+rein.toml defaults  <  task definition fields  <  CLI flags
 (lowest priority)                                    (highest priority)
 ```
 
-`harness.toml` sets project defaults. Task JSON can override per-task. CLI flags override everything. Same pattern as the existing agent/model/effort resolution in [TASKS.md](TASKS.md).
+`rein.toml` sets project defaults. Task JSON can override per-task. CLI flags override everything. Same pattern as the existing agent/model/effort resolution in [TASKS.md](TASKS.md).
 
 ### Full Schema
 
 ```toml
-# harness.toml — project-level configuration for the agentic harness
+# rein.toml — project-level configuration for the rein
 
 [project]
 name = "my-project"
@@ -161,7 +161,7 @@ include_validation_output = true
 
 ### Built-in Signals
 
-Built-in signals have special behavior the harness understands natively. They cannot be redefined as custom signals.
+Built-in signals have special behavior rein understands natively. They cannot be redefined as custom signals.
 
 | Signal | Special Behavior | Default State |
 |--------|-----------------|---------------|
@@ -185,7 +185,7 @@ commands = ["command1", "command2"]
 after = "build"                    # Optional: ordering dependency (signal name or list)
 ```
 
-Custom signals run commands in the sandbox, check exit codes (all zero = pass, any non-zero = fail), and capture stdout/stderr. No special parsing — the harness treats them as opaque pass/fail checks.
+Custom signals run commands in the sandbox, check exit codes (all zero = pass, any non-zero = fail), and capture stdout/stderr. No special parsing — rein treats them as opaque pass/fail checks.
 
 ---
 
@@ -248,7 +248,7 @@ commands = ["npx playwright test"]
 after = ["build", "tests"]      # Multiple dependencies
 ```
 
-Circular dependencies are a configuration error — the harness rejects them at load time.
+Circular dependencies are a configuration error — rein rejects them at load time.
 
 ---
 
@@ -262,7 +262,7 @@ class SignalResult:
     """Result of a single quality gate signal evaluation."""
     name: str                    # Signal name (e.g. "tests", "lint", "security")
     status: str                  # "pass" | "fail" | "warn" | "skip"
-    required: bool               # From harness.toml
+    required: bool               # From rein.toml
     message: str = ""            # Human-readable summary
     details: dict = field(default_factory=dict)  # Signal-specific data
 ```
@@ -431,7 +431,7 @@ Respond with JSON only:
 
 ## Round Mechanism
 
-When the quality gate verdict is `"fail"` and `round_number < max_rounds`, the harness dispatches a retry round.
+When the quality gate verdict is `"fail"` and `round_number < max_rounds`, rein dispatches a retry round.
 
 ### Round Flow
 
@@ -455,7 +455,7 @@ If max_rounds exhausted with verdict "fail": escalate to human.
 
 ### Round 2+ Prompt
 
-The harness auto-generates a feedback prompt for retry rounds:
+Rein auto-generates a feedback prompt for retry rounds:
 
 ```
 Your previous attempt had the following issues:
@@ -479,7 +479,7 @@ Fix these issues. The code is already in the working directory from your previou
 
 - Each round gets a **fresh agent context** (zero context pressure)
 - The **sandbox persists** across rounds — code from previous rounds is present
-- Each round has its own **token budget** and **timeout** (from harness.toml defaults or task definition)
+- Each round has its own **token budget** and **timeout** (from rein.toml defaults or task definition)
 - The review agent runs fresh in each round — it does not carry context from previous reviews
 - `max_rounds` is configurable (default: 2). Setting `max_rounds = 1` disables retries.
 
@@ -500,7 +500,7 @@ The quality gate extends the existing report format from [REPORTS.md](REPORTS.md
         "token_budget": 70000
     },
     "config": {
-        "harness_toml": "harness.toml",
+        "rein_toml": "rein.toml",
         "max_rounds": 2,
         "quality_gate_enabled": true,
         "signals_enabled": ["build", "tests", "lint", "context_pressure", "review"]
@@ -741,7 +741,7 @@ The quality gate extends the existing report format from [REPORTS.md](REPORTS.md
 
 | Field | Description |
 |-------|-------------|
-| `config` | Records which harness.toml was used and key pipeline settings |
+| `config` | Records which rein.toml was used and key pipeline settings |
 | `rounds[]` | Each round bundles its agent result, evaluation, and quality gate verdict |
 | `rounds[].quality_gate` | Per-round aggregate verdict and signal breakdown |
 | `final_verdict` | The verdict from the last round — the one that matters |
@@ -752,7 +752,7 @@ The quality gate extends the existing report format from [REPORTS.md](REPORTS.md
 
 ### Backward Compatibility
 
-For runs without a quality gate (`quality_gate_enabled = false` or no harness.toml found):
+For runs without a quality gate (`quality_gate_enabled = false` or no rein.toml found):
 
 - `rounds` has one entry
 - `quality_gate` contains only `tests` and `context_pressure` signals (minimum built-in checks)
@@ -998,26 +998,26 @@ Custom signals use `SignalConfig` as-is. Adding a new check to a project require
 
 ## Pipeline Modes
 
-The harness exposes three pipeline modes, all governed by the same quality gate:
+Rein exposes three pipeline modes, all governed by the same quality gate:
 
 ```bash
 # Forward: agent implements from task spec, quality gate evaluates
-harness run -t task.json
+rein run -t task.json
 
 # Review only: quality gate on existing changes (no implementation agent)
-harness review --diff HEAD~1..HEAD
+rein review --diff HEAD~1..HEAD
 
 # Composition: sequential tasks from a directory, each independently gated
-harness run -t tasks/pipeline/
+rein run -t tasks/pipeline/
 ```
 
-### `harness review`
+### `rein review`
 
 Review-only mode skips the implementation agent and runs the quality gate against existing changes. This is the git-hook entry point:
 
 ```bash
 # .git/hooks/pre-push
-harness review --diff HEAD~1..HEAD --config harness.toml
+rein review --diff HEAD~1..HEAD --config rein.toml
 ```
 
 In review mode:
@@ -1033,7 +1033,7 @@ In review mode:
 
 | Spec | Relationship |
 |------|-------------|
-| [TOKENS.md](TOKENS.md) | `context_pressure` signal reads from the same `ContextPressure` model. `ZoneConfig` in harness.toml replaces the standalone YAML config example. |
+| [TOKENS.md](TOKENS.md) | `context_pressure` signal reads from the same `ContextPressure` model. `ZoneConfig` in rein.toml replaces the standalone YAML config example. |
 | [SESSIONS.md](SESSIONS.md) | Zone actions (graceful stop, immediate kill) remain unchanged. The quality gate runs **after** the agent finishes or is stopped. |
 | [REPORTS.md](REPORTS.md) | The extended report format supersedes the flat `results[]`/`evaluations[]` structure. Single-round runs without quality gate remain compatible. |
 | [TASKS.md](TASKS.md) | Task definitions are unchanged. `validation_commands` feeds the `tests` signal. `token_budget` and `timeout_seconds` apply per-round. |

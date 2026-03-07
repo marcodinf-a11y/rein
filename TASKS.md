@@ -1,6 +1,6 @@
-# Agentic Harness — Task Definition Spec
+# Rein — Task Definition Spec
 
-Task files are **human-written, agent-read** — the developer authors them, the harness feeds them to agents. JSON is the MVP task format. YAML support is planned as a future addition.
+Task files are **human-written, agent-read** — the developer authors them, Rein feeds them to agents. JSON is the supported task format. YAML support is planned as a future addition.
 
 ---
 
@@ -48,7 +48,7 @@ class TaskDefinition:
 | `validation_commands` | `list[str]` | no | `[]` | Commands to run after the agent finishes |
 | `files` | `dict[str, str]` | no | `{}` | Filename to content mapping to seed in sandbox |
 | `token_budget` | `int` | no | `70000` | Token budget for the agent run |
-| `timeout_seconds` | `int` | no | `300` | Wall-clock timeout in seconds. On expiry, the harness applies the [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (immediate mode): `SIGTERM`/`SIGINT`, 5-second grace period, then `SIGKILL`. All complete NDJSON/JSONL lines are preserved as partial output. Report sets `termination_reason=timed_out`. |
+| `timeout_seconds` | `int` | no | `300` | Wall-clock timeout in seconds. On expiry, Rein applies the [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (immediate mode): `SIGTERM`/`SIGINT`, 5-second grace period, then `SIGKILL`. All complete NDJSON/JSONL lines are preserved as partial output. Report sets `termination_reason=timed_out`. |
 | `tags` | `list[str]` | no | `[]` | For filtering and categorization |
 | `metadata` | `dict[str, Any]` | no | `{}` | Arbitrary metadata |
 
@@ -63,7 +63,7 @@ CLI flags (`--agent`, `--model`, `--effort`) provide **defaults** for tasks that
 | absent | set | CLI value |
 | absent | absent | Agent default (model/effort) or error (agent) |
 
-An agent must be resolvable for every task — from the task's `agent` field or the CLI `--agent` flag. If neither provides an agent, the harness errors. Model and effort are always optional; agents use their own defaults when not specified.
+An agent must be resolvable for every task — from the task's `agent` field or the CLI `--agent` flag. If neither provides an agent, Rein errors. Model and effort are always optional; agents use their own defaults when not specified.
 
 ### WorkspaceConfig Fields
 
@@ -95,11 +95,11 @@ Best for: greenfield tasks, algorithm challenges, self-contained modules.
 Creates a git worktree from an existing repository. The agent works on a detached branch — the original working tree is untouched.
 
 - `source` is required and must point to a git repository
-- The harness runs `git worktree add <sandbox_path> -b harness/<task_id> HEAD` from the source repo
+- Rein runs `git worktree add <sandbox_path> -b rein/<task_id> HEAD` from the source repo
 - Seed files from `files` are written into the worktree (overwriting existing files or adding new ones)
 - `setup_commands` run after seeding
 - Diff baseline: the commit at worktree creation time (`HEAD` of source at invocation)
-- Cleanup: `git worktree remove <sandbox_path>` and `git branch -D harness/<task_id>`
+- Cleanup: `git worktree remove <sandbox_path>` and `git branch -D rein/<task_id>`
 
 Best for: brownfield tasks against git repositories — refactoring, bug fixes, feature additions. The agent has access to the full project structure, existing tests, and dependencies.
 
@@ -108,9 +108,9 @@ Best for: brownfield tasks against git repositories — refactoring, bug fixes, 
 Copies an existing directory into a temporary directory. The agent works on the copy — the original is untouched.
 
 - `source` is required and must point to an existing directory
-- The harness copies the source tree into a fresh temp directory (respecting `.gitignore` if present)
+- Rein copies the source tree into a fresh temp directory (respecting `.gitignore` if present)
 - If the source is a git repo, the copy includes `.git` — diff baseline is the current commit
-- If the source is not a git repo, the harness runs `git init` and creates an initial commit to establish a diff baseline
+- If the source is not a git repo, Rein runs `git init` and creates an initial commit to establish a diff baseline
 - Seed files from `files` are written into the copy (overwriting or adding)
 - `setup_commands` run after seeding
 - Cleanup: temp directory is deleted after artifacts are captured
@@ -119,7 +119,7 @@ Best for: non-git projects, or when you need full isolation (e.g. destructive se
 
 ---
 
-## JSON Format (MVP)
+## JSON Format
 
 ### Why JSON
 
@@ -325,7 +325,7 @@ tasks/pipeline/
     03_review.json       → agent: claude, model: sonnet
 ```
 
-Run with: `harness run -t tasks/pipeline/`
+Run with: `rein run -t tasks/pipeline/`
 
 Each task dispatches to its specified agent. Tasks without an `agent` field require `--agent` on the CLI.
 
@@ -477,7 +477,7 @@ metadata:
 
 ## Validation Patterns
 
-After the agent completes, the harness runs each entry in `validation_commands` inside the sandbox. Each command is executed as a shell subprocess.
+After the agent completes, Rein runs each entry in `validation_commands` inside the sandbox. Each command is executed as a shell subprocess.
 
 Scoring is binary: all commands exit 0 -> score 1.0, any non-zero -> score 0.0. Stdout/stderr are captured in the report. See [REPORTS.md](REPORTS.md) for scoring details.
 
@@ -569,11 +569,11 @@ tasks/
 Run a single task or an entire directory:
 
 ```bash
-harness run -t tasks/example_fizzbuzz.json -a claude
-harness run -t tasks/ -a claude
+rein run -t tasks/example_fizzbuzz.json -a claude
+rein run -t tasks/ -a claude
 ```
 
-The MVP harness accepts `.json` files. When scanning a directory, it loads all `.json` files. YAML support (`.yaml`) will be added in a future release.
+Rein accepts `.json` files. When scanning a directory, it loads all `.json` files. YAML support (`.yaml`) will be added in a future release.
 
 ---
 

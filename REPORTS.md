@@ -1,6 +1,6 @@
-# Agentic Harness — Report Format
+# Rein — Report Format
 
-Every `harness run` invocation produces a single JSON report capturing agent results and evaluation scores.
+Every `rein run` invocation produces a single JSON report capturing agent results and evaluation scores.
 
 ## Report JSON Schema
 
@@ -78,6 +78,8 @@ Reports are saved to `results/{task_id}_{YYYYMMDD_HHMMSS}.json`. One report per 
 | `diff` | Git diff of what the agent changed in the sandbox. |
 | `artifacts` | Map of filename to content for files the agent created or modified. |
 | `termination_reason` | Why the run ended: `completed` (normal), `timed_out` (wall-clock limit), `context_pressure` (zone kill), or `error` (adapter failure). |
+| `parse_error` | Exception message when NDJSON/JSONL parsing fails. `null` on success. When set, `normalized_tokens` is null and `result_text` is empty. |
+| `raw_output` | Raw stdout/stderr captured on parse failure. `null` on successful parse. |
 | `validation_passed` / `score` | Evaluation results from running validation commands. |
 
 ## Evaluation Scoring

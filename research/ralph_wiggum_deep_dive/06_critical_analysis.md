@@ -1,14 +1,14 @@
-# Critical Analysis: The Ralph Wiggum Loop as Agentic Harness
+# Critical Analysis: The Ralph Wiggum Loop as Rein
 
 **Deep Dive Document 06 | March 2026**
 
-An adversarial examination of the Ralph Loop's suitability as an agentic harness for production coding workflows.
+An adversarial examination of the Ralph Loop's suitability as an rein for production coding workflows.
 
 ---
 
 ## 1. The Core Thesis Is Correct. The Implementation Is Incomplete.
 
-The Ralph Loop's thesis — context rotation beats context accumulation — is correct and well-supported by research. The harness was independently designed around this thesis. Ralph validates the thesis from a practitioner perspective while the research validates it formally. There is no disagreement on the principle.
+The Ralph Loop's thesis — context rotation beats context accumulation — is correct and well-supported by research. Rein was independently designed around this thesis. Ralph validates the thesis from a practitioner perspective while the research validates it formally. There is no disagreement on the principle.
 
 The disagreement is on the implementation. The Ralph Loop implements context rotation through a bash `while` loop with no monitoring, no cost control, no structured evaluation, and no convergence detection. This is the minimum viable version of context rotation. It works when tasks are simple, specs are clear, and the human operator is watching.
 
@@ -31,7 +31,7 @@ Huntley's signature claim — completing a $50K contract for $297 in API costs �
 - For a specific class of well-defined, machine-verifiable tasks, AI-driven loops produce acceptable output at orders of magnitude lower cost
 - Senior expertise is still required but shifts from writing code to writing specs and designing prompts
 
-The honest framing: "Ralph reduces the *marginal* cost of code generation but shifts — rather than eliminates — the *total* cost of software development." The harness's token accounting provides the honest cost picture: total tokens consumed × cost per token, with no labor cost excluded.
+The honest framing: "Ralph reduces the *marginal* cost of code generation but shifts — rather than eliminates — the *total* cost of software development." Rein's token accounting provides the honest cost picture: total tokens consumed × cost per token, with no labor cost excluded.
 
 ---
 
@@ -47,7 +47,7 @@ Ralph's greenfield limitation is not incidental — it's structural:
 
 3. **Coupling:** Changes in brownfield codebases have non-local effects. Modifying `auth.py` might break `middleware.py`, `tests/test_auth.py`, and `docs/api.md`. The agent sees only the files it reads; it cannot anticipate side effects across the codebase.
 
-The harness addresses brownfield through:
+Rein addresses brownfield through:
 - **Scoped tasks:** The operator defines which files are relevant, limiting the agent's scope
 - **Seed files:** The operator provides context about the existing codebase
 - **Sandbox isolation:** Worktrees and copies protect the original codebase
@@ -65,13 +65,13 @@ This means:
 - **No comparison across tasks.** Is task X inherently harder than task Y? Ralph has no data.
 - **No cost-effectiveness analysis.** What is the cost per successful task completion? Ralph doesn't track failures.
 
-The harness produces structured reports with normalized token usage, validation scores, diffs, and timing. This data accumulates over time, enabling:
+Rein produces structured reports with normalized token usage, validation scores, diffs, and timing. This data accumulates over time, enabling:
 - Agent comparison (which agent performs best on which task class)
 - Model comparison (which model achieves the best cost/quality tradeoff)
 - Task difficulty estimation (which tasks have high failure rates)
 - Cost forecasting (expected cost for a given task class)
 
-Without evaluation, Ralph is a technique. With evaluation, the harness is a platform.
+Without evaluation, Ralph is a technique. With evaluation, rein is a platform.
 
 ---
 
@@ -91,7 +91,7 @@ This means:
 
 The plugin is popular because it's convenient — no bash scripting, built into Claude Code, one command to start. But convenience is not correctness. Huntley's own warning ("the original Ralph approach terminates and restarts cleanly between tasks, unlike exit-hook plugins") is often overlooked.
 
-The harness uses process-level isolation by design. Each session is a new subprocess. Context never accumulates beyond one session. This is architecturally immune to the stop hook's failure mode.
+Rein uses process-level isolation by design. Each session is a new subprocess. Context never accumulates beyond one session. This is architecturally immune to the stop hook's failure mode.
 
 ---
 
@@ -104,7 +104,7 @@ This is an honest self-assessment that should give pause to anyone considering R
 - **In an undeterministic world** means the technique cannot guarantee any specific outcome
 - Together, they mean: Ralph will reliably produce *something*, but that something is not reliably *correct*
 
-For prototyping and exploration, this is acceptable. For production software that must be correct, it is not. The harness's quality gate provides the correctness check that Ralph lacks — validation commands that determine whether the output meets the operator's criteria, regardless of whether the agent believes it's done.
+For prototyping and exploration, this is acceptable. For production software that must be correct, it is not. Rein's quality gate provides the correctness check that Ralph lacks — validation commands that determine whether the output meets the operator's criteria, regardless of whether the agent believes it's done.
 
 ---
 
@@ -149,28 +149,28 @@ After all the above, Ralph is genuinely useful in specific circumstances:
 
 4. **Batch-processing well-defined mechanical tasks.** Generate test coverage for 50 functions. Format 100 files. Add type annotations to a module. Tasks with obvious, verifiable success criteria.
 
-For everything else — brownfield, production, enterprise, multi-agent, cost-sensitive, safety-critical — the Ralph Loop is insufficient and the agentic harness (or something like it) is necessary.
+For everything else — brownfield, production, enterprise, multi-agent, cost-sensitive, safety-critical — the Ralph Loop is insufficient and the rein (or something like it) is necessary.
 
 ---
 
-## 9. The Natural Evolution: Ralph → Harness
+## 9. The Natural Evolution: Ralph → Rein
 
-The Ralph ecosystem's trajectory is itself evidence for the harness's design:
+The Ralph ecosystem's trajectory is itself evidence for Rein's design:
 
 1. **Ralph (original):** Bare while loop. No monitoring. No evaluation.
-2. **ralph-orchestrator:** Adds context window management and token tracking. Moving toward the harness's monitor.
-3. **Principal Skinner:** Adds deterministic tool-use control and behavioral circuit breakers. Moving toward the harness's sandbox and quality gate.
-4. **Gas Town:** Adds multi-agent orchestration. Moving toward the harness's multi-agent dispatch.
-5. **open-ralph-wiggum:** Adds multi-model support. Moving toward the harness's adapter protocol.
+2. **ralph-orchestrator:** Adds context window management and token tracking. Moving toward Rein's monitor.
+3. **Principal Skinner:** Adds deterministic tool-use control and behavioral circuit breakers. Moving toward Rein's sandbox and quality gate.
+4. **Gas Town:** Adds multi-agent orchestration. Moving toward Rein's multi-agent dispatch.
+5. **open-ralph-wiggum:** Adds multi-model support. Moving toward Rein's adapter protocol.
 
-Each evolution adds a capability that the harness already has. The Ralph ecosystem is independently discovering that a production agentic system needs:
-- Real-time monitoring (harness: pressure monitor)
-- Cost control (harness: token budget)
-- Tool-use governance (harness: subprocess isolation)
-- Structured evaluation (harness: quality gate)
-- Multi-agent support (harness: adapter protocol)
+Each evolution adds a capability that rein already has. The Ralph ecosystem is independently discovering that a production agentic system needs:
+- Real-time monitoring (rein: pressure monitor)
+- Cost control (rein: token budget)
+- Tool-use governance (rein: subprocess isolation)
+- Structured evaluation (rein: quality gate)
+- Multi-agent support (rein: adapter protocol)
 
-The harness is not "the next step after Ralph." The harness is what Ralph becomes when you take the core insight (context rotation) and build a production system around it.
+Rein is not "the next step after Ralph." Rein is what Ralph becomes when you take the core insight (context rotation) and build a production system around it.
 
 ---
 
@@ -182,4 +182,4 @@ The harness is not "the next step after Ralph." The harness is what Ralph become
 - "Supervising Ralph." securetrajectories.substack.com
 - "Ralph Wiggum Loop." beuke.org
 - research/rlm_deep_dive/08_critical_analysis.md
-- Agentic Harness ARCHITECTURE.md, TOKENS.md, SESSIONS.md, BRIEF.md
+- Rein ARCHITECTURE.md, TOKENS.md, SESSIONS.md, BRIEF.md

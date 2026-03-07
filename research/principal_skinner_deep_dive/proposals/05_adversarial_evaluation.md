@@ -8,7 +8,7 @@
 
 ## Proposed Enhancement: Adversarial Evaluation Mode
 
-The following describes a proposed pipeline mode for QUALITY_GATE.md that extends the harness's evaluation capabilities toward adversarial testing.
+The following describes a proposed pipeline mode for QUALITY_GATE.md that extends Rein's evaluation capabilities toward adversarial testing.
 
 ---
 
@@ -22,10 +22,10 @@ Adversarial evaluation runs the same task multiple times with controlled variati
 
 ```bash
 # Run task 10 times, analyze failure distribution
-harness eval -t task.json --runs 10
+rein eval -t task.json --runs 10
 
 # Run with prompt variation (adversarial mode)
-harness eval -t task.json --runs 10 --vary-prompt
+rein eval -t task.json --runs 10 --vary-prompt
 ```
 
 **Standard mode** (`--runs N`): Run the same task N times with identical configuration. Produces a statistical summary: pass rate, failure mode distribution, cost distribution, context pressure distribution.
@@ -77,7 +77,7 @@ harness eval -t task.json --runs 10 --vary-prompt
 
 Principal Skinner proposes pre-deployment adversarial simulation: "thousands of simulated trajectories" to find "toxic flows." The critical analysis ([06_critical_analysis.md](../06_critical_analysis.md)) concludes this is impractical:
 
-| Dimension | Principal Skinner Proposal | Harness Adversarial Evaluation |
+| Dimension | Principal Skinner Proposal | Rein Adversarial Evaluation |
 |-----------|--------------------------|-------------------------------|
 | **Scale** | Thousands of trajectories | 5-20 runs (configurable) |
 | **Cost** | $100s-$1000s per task | $1-$5 per task (5-20 × $0.05-$0.25 per run) |
@@ -86,7 +86,7 @@ Principal Skinner proposes pre-deployment adversarial simulation: "thousands of 
 | **Output** | "Actuarial evidence of safety boundaries" | Statistical pass rate, failure mode distribution, cost distribution |
 | **Toxic flow detection** | Classify dangerous action sequences | Action frequency summary across runs (from proposal 04) |
 
-The harness version captures 80% of the value at 5% of the cost. It does not claim to find all toxic flows or provide actuarial evidence — it provides *statistical confidence* in a task/agent combination.
+Rein version captures 80% of the value at 5% of the cost. It does not claim to find all toxic flows or provide actuarial evidence — it provides *statistical confidence* in a task/agent combination.
 
 #### Relationship to Existing Features
 
@@ -103,15 +103,15 @@ Two independent deep dives converge on multi-run evaluation:
 
 1. **RLM deep dive** found 0/6-to-6/6 run variance in coding benchmarks — single-run evaluation is unreliable. Recommended running 5+ runs per task for statistical confidence.
 
-2. **Principal Skinner deep dive** proposes adversarial simulation to find toxic flows. The practical subset — multi-run with prompt variation — is achievable within the harness's cost constraints.
+2. **Principal Skinner deep dive** proposes adversarial simulation to find toxic flows. The practical subset — multi-run with prompt variation — is achievable within Rein's cost constraints.
 
-The harness already has the infrastructure for this:
+Rein already has the infrastructure for this:
 - Task definitions are reusable
 - Sandboxes are created fresh per run
 - Quality gate evaluates each run independently
 - Structured reports can be aggregated
 
-The missing piece is orchestration: running the same task N times, collecting results, and producing a statistical summary. This is a thin layer on top of the existing `harness run` command.
+The missing piece is orchestration: running the same task N times, collecting results, and producing a statistical summary. This is a thin layer on top of the existing `rein run` command.
 
 Adversarial prompt variation (distractor injection, instruction reordering) tests the agent's robustness to the kinds of perturbations that occur naturally in real codebases: misleading comments, ambiguous requirements, conflicting instructions. This is more practical than simulating hostile environments — it tests the agent's reasoning resilience, which is what matters for coding tasks.
 

@@ -1,14 +1,14 @@
-# Agentic Harness — Session Management & Context Pressure Monitoring
+# Rein — Session Management & Context Pressure Monitoring
 
-How context pressure is monitored in real-time, when the harness intervenes, and how work is preserved.
+How context pressure is monitored in real-time, when rein intervenes, and how work is preserved.
 
 ## Why Context Pressure Is the Core Metric
 
 AI coding agents degrade as conversations grow. Research shows this degradation is **continuous and accelerating** — there is no safe plateau, and newer models with larger context windows exhibit the same patterns as older ones ([Chroma Research: Context Rot](https://research.trychroma.com/context-rot)). More context means worse reasoning, more hallucination, and more instruction-following failures.
 
-The harness treats **context pressure** — the ratio of consumed tokens to the model's context window — as its primary operational metric. Every intervention decision (continue, wrap up, kill) is driven by context pressure.
+Rein treats **context pressure** — the ratio of consumed tokens to the model's context window — as its primary operational metric. Every intervention decision (continue, wrap up, kill) is driven by context pressure.
 
-A "session" in the harness is a single task execution: one task dispatched to one agent in one sandbox. The harness does not maintain multi-turn conversations with agents — each run is independent by default. Within a single execution, the agent may have many internal turns (tool calls, reasoning steps), and it is across these turns that context pressure accumulates. Session continuation (multi-turn across executions) is supported per-agent but is not the default workflow.
+A "session" in rein is a single task execution: one task dispatched to one agent in one sandbox. Rein does not maintain multi-turn conversations with agents — each run is independent by default. Within a single execution, the agent may have many internal turns (tool calls, reasoning steps), and it is across these turns that context pressure accumulates. Session continuation (multi-turn across executions) is supported per-agent but is not the default workflow.
 
 ## Session Lifecycle
 
@@ -48,7 +48,7 @@ A "session" in the harness is a single task execution: one task dispatched to on
                  (Artifacts already captured)
 ```
 
-Step 4 (MONITOR) is the defining step of the harness. It runs concurrently with the agent — reading the agent's output stream in real-time and computing context pressure after each turn completes. See [Context Pressure Monitoring](#context-pressure-monitoring) below.
+Step 4 (MONITOR) is the defining step of rein. It runs concurrently with the agent — reading the agent's output stream in real-time and computing context pressure after each turn completes. See [Context Pressure Monitoring](#context-pressure-monitoring) below.
 
 This lifecycle corresponds to the execution flow defined in [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -58,7 +58,7 @@ This lifecycle corresponds to the execution flow defined in [ARCHITECTURE.md](AR
 
 ### Concept
 
-Context pressure measures how much of the model's context window has been consumed. As pressure increases, model quality degrades — accelerating, not linear. The harness monitors this in real-time and acts on configurable thresholds.
+Context pressure measures how much of the model's context window has been consumed. As pressure increases, model quality degrades — accelerating, not linear. Rein monitors this in real-time and acts on configurable thresholds.
 
 ```
 Context Pressure = estimated_tokens_used / model_context_window × 100
@@ -66,11 +66,11 @@ Context Pressure = estimated_tokens_used / model_context_window × 100
 
 ### Pressure Zones
 
-| Zone | Default Range | Meaning | Harness Action |
+| Zone | Default Range | Meaning | Rein Action |
 |---|---|---|---|
 | **Green** | 0–60% | Safe operating range. Degradation present but shallow. | Continue execution. |
-| **Yellow** | 60–80% | Acceleration zone. Quality degrading noticeably. | **Graceful stop.** Wait for current turn to complete, then kill subprocess. Harness wraps up. |
-| **Red** | >80% | Steep degradation. High hallucination and instruction-following failure risk. | **Immediate kill.** Harness wraps up with partial data. |
+| **Yellow** | 60–80% | Acceleration zone. Quality degrading noticeably. | **Graceful stop.** Wait for current turn to complete, then kill subprocess. Rein wraps up. |
+| **Red** | >80% | Steep degradation. High hallucination and instruction-following failure risk. | **Immediate kill.** Rein wraps up with partial data. |
 
 ### Configurable Thresholds
 
@@ -89,7 +89,7 @@ context_pressure:
       yellow_max_pct: 60
 ```
 
-**Buffer zone warning:** The gap between `green_max_pct` and `yellow_max_pct` is the "landing strip" — the agent's remaining context room to finish its current turn before the harness intervenes. If this gap is too small, the agent may push from green into red within a single turn, bypassing yellow entirely. A gap of at least 15–20% of the context window is recommended for typical coding tasks. The harness does not enforce a minimum gap — this is the operator's responsibility to configure sensibly based on task complexity and model behavior.
+**Buffer zone warning:** The gap between `green_max_pct` and `yellow_max_pct` is the "landing strip" — the agent's remaining context room to finish its current turn before rein intervenes. If this gap is too small, the agent may push from green into red within a single turn, bypassing yellow entirely. A gap of at least 15–20% of the context window is recommended for typical coding tasks. Rein does not enforce a minimum gap — this is the operator's responsibility to configure sensibly based on task complexity and model behavior.
 
 ### Per-Agent Measurement Capabilities
 
@@ -102,56 +102,56 @@ Not all agents provide the same level of mid-run token visibility:
 | **Codex CLI** | Yes | `--json` JSONL stream. `turn.completed` events carry per-turn usage deltas. | Per turn |
 | **Gemini CLI** | No — partial | `--output-format stream-json` streams structured events, but token counts only appear in the final `result` event. | Post-completion only |
 
-**Degraded mode:** When mid-run monitoring is unavailable (Gemini, Claude with extended thinking), the harness checks context pressure post-completion only. The pressure zone is logged in the report for future task sizing decisions, but the harness cannot intervene mid-run. For Gemini, OpenTelemetry export (`gen_ai.client.token.usage` metric) is a documented future path for mid-run token visibility.
+**Degraded mode:** When mid-run monitoring is unavailable (Gemini, Claude with extended thinking), rein checks context pressure post-completion only. The pressure zone is logged in the report for future task sizing decisions, but rein cannot intervene mid-run. For Gemini, OpenTelemetry export (`gen_ai.client.token.usage` metric) is a documented future path for mid-run token visibility.
 
 ### Zone Actions
 
 **Yellow — Graceful Stop:**
 
-1. Harness detects cumulative tokens crossing `green_max_pct` of context window
+1. Rein detects cumulative tokens crossing `green_max_pct` of context window
 2. Wait for the agent's current turn to complete (do not kill mid-turn — partial tool calls leave inconsistent state)
 3. Apply [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (graceful mode); `termination_reason=context_pressure`
-4. Harness performs wrap-up (see [Harness Wrap-Up Protocol](#harness-wrap-up-protocol))
+4. Rein performs wrap-up (see [Rein Wrap-Up Protocol](#rein-wrap-up-protocol))
 5. Optionally dispatch post-kill summary agent (see [Post-Kill Summary Agent](#post-kill-summary-agent))
 
 **Red — Immediate Kill:**
 
-1. Harness detects cumulative tokens crossing `yellow_max_pct` of context window
+1. Rein detects cumulative tokens crossing `yellow_max_pct` of context window
 2. Apply [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (immediate mode); `termination_reason=context_pressure`
-3. Harness performs wrap-up with whatever partial output was captured from the stream buffer
+3. Rein performs wrap-up with whatever partial output was captured from the stream buffer
 4. Post-kill summary agent not dispatched (context too degraded for useful summary)
 
 **Post-completion (degraded mode):**
 
 1. Agent completes normally (Gemini, Claude with extended thinking)
-2. Harness parses final output, computes context pressure
+2. Rein parses final output, computes context pressure
 3. Pressure zone logged in report — no mid-run intervention was possible
-4. If red: harness logs a warning that the agent operated in degraded territory
+4. If red: rein logs a warning that the agent operated in degraded territory
 
 **Timeout — Wall-Clock Limit Exceeded:**
 
 1. Elapsed time since subprocess start exceeds `timeout_seconds` (default 300)
 2. Apply [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (immediate mode); `termination_reason=timed_out`
-3. Harness performs wrap-up (see [Harness Wrap-Up Protocol](#harness-wrap-up-protocol))
+3. Rein performs wrap-up (see [Rein Wrap-Up Protocol](#rein-wrap-up-protocol))
 4. Post-kill summary agent not dispatched (equivalent to red-zone treatment)
 
 Timeout and context pressure monitoring run concurrently — whichever fires first wins. If context pressure triggers a kill before the timeout, the timeout is cancelled. If the timeout fires first, context pressure monitoring stops.
 
-### Harness Wrap-Up Protocol
+### Rein Wrap-Up Protocol
 
-When the harness stops an agent (context pressure — yellow or red zone — or wall-clock timeout), it performs wrap-up itself — the agent is not trusted to wrap up because (a) there is no reliable "please wrap up" signal in CLI subprocess mode, and (b) at yellow/red pressure the agent's output quality is already degraded, and (c) on timeout the agent may be stuck or looping.
+When rein stops an agent (context pressure — yellow or red zone — or wall-clock timeout), it performs wrap-up itself — the agent is not trusted to wrap up because (a) there is no reliable "please wrap up" signal in CLI subprocess mode, and (b) at yellow/red pressure the agent's output quality is already degraded, and (c) on timeout the agent may be stuck or looping.
 
 Wrap-up steps:
 
 1. **Drain stream buffer** — capture all NDJSON/JSONL lines received up to the kill point
-2. **Commit uncommitted changes** — `git add -A && git commit -m "harness: auto-commit at termination ({termination_reason})"` in the sandbox
+2. **Commit uncommitted changes** — `git add -A && git commit -m "rein: auto-commit at termination ({termination_reason})"` in the sandbox
 3. **Write per-run log file** — includes: task ID, agent, model, zone at termination, token consumption metrics (cumulative input/output, peak utilization %, measurement method), number of turns, kill signal sent, captured stream summary
 4. **Update PROGRESS.md** — append entry with: task ID, what was attempted (from task prompt), zone at termination, what was captured (git log summary, diff stat), whether a post-kill summary was generated
 5. **Log termination metrics** — per-task record for trend analysis: `{ task_id, agent, model, context_window, estimated_tokens_used, utilization_pct, zone, measurement_method, turns, termination_reason, duration_seconds, timestamp }`. The `termination_reason` field uses the enum: `completed` (normal exit), `timed_out` (wall-clock limit), `context_pressure` (zone kill), or `error` (adapter failure)
 
 ### Post-Kill Summary Agent
 
-After a yellow-zone stop (not red — at red the situation is too degraded for useful context), the harness can optionally dispatch a fresh, short-lived agent to produce a semantic summary of what was accomplished.
+After a yellow-zone stop (not red — at red the situation is too degraded for useful context), rein can optionally dispatch a fresh, short-lived agent to produce a semantic summary of what was accomplished.
 
 This agent receives:
 - The git log and diff stat from the stopped run
@@ -164,13 +164,13 @@ The summary agent runs in a fresh context (no pressure), uses a small/fast model
 
 ### Agent Prompt Engineering (Defense in Depth)
 
-Context pressure monitoring is the harness's responsibility. But as defense in depth, every task prompt should instruct the agent to:
+Context pressure monitoring is rein's responsibility. But as defense in depth, every task prompt should instruct the agent to:
 
 - **Commit frequently** — after each meaningful change, not just at the end
 - **Update PROGRESS.md after each commit** — record what was done and what remains
 - **Log consistently** — write to the task log file after significant operations
 
-This means even if the harness kills the agent, most work is already persisted. The wrap-up only catches the last uncommitted delta. Task artifacts (JSON definitions) should be sized to fit within the green zone under normal conditions.
+This means even if rein kills the agent, most work is already persisted. The wrap-up only catches the last uncommitted delta. Task artifacts (JSON definitions) should be sized to fit within the green zone under normal conditions.
 
 ---
 
@@ -184,7 +184,7 @@ The token budget is a **complementary** metric to context pressure. Context pres
 
 ## Session Continuation (Per-Agent)
 
-By default, each harness run is a fresh, isolated execution. But agents support session continuation for multi-turn workflows:
+By default, each rein run is a fresh, isolated execution. But agents support session continuation for multi-turn workflows:
 
 ### Claude Code
 
@@ -199,7 +199,7 @@ claude -p "next query" --resume "$session_id"
 claude -p "next query" --continue
 ```
 
-**Note:** When resuming a session, context pressure carries forward from the previous execution. The harness must account for prior token consumption when computing pressure for the resumed session.
+**Note:** When resuming a session, context pressure carries forward from the previous execution. Rein must account for prior token consumption when computing pressure for the resumed session.
 
 ### Codex CLI
 

@@ -2,7 +2,7 @@
 
 **Deep Dive Document 04 | March 2026**
 
-What data ralph-orchestrator captures, how it reports results, and how this compares to the harness's structured evaluation.
+What data ralph-orchestrator captures, how it reports results, and how this compares to Rein's structured evaluation.
 
 ---
 
@@ -98,9 +98,9 @@ The JSONL event log is the most machine-readable artifact. Each line is a JSON o
 
 ---
 
-## 5. Comparison with the Harness
+## 5. Comparison with Rein
 
-| Dimension | ralph-orchestrator | Agentic Harness |
+| Dimension | ralph-orchestrator | Rein |
 |-----------|-------------------|----------------|
 | **Report format** | Markdown summary | Structured JSON |
 | **Token accounting** | Per-iteration from backend | Normalized `NormalizedTokenUsage` across agents |
@@ -113,24 +113,24 @@ The JSONL event log is the most machine-readable artifact. Each line is a JSON o
 | **Cache efficiency** | Raw cache tokens (Claude only) | Cache efficiency ratio across agents |
 | **Termination metadata** | Status + reason in summary | Full termination metrics (zone, turns, signal, duration) |
 
-**Key gap:** Ralph captures data but does not structure it for analysis. The harness's JSON reports are designed for programmatic comparison — you can diff two runs, aggregate across tasks, compute trends. Ralph's markdown summaries require human reading.
+**Key gap:** Ralph captures data but does not structure it for analysis. Rein's JSON reports are designed for programmatic comparison — you can diff two runs, aggregate across tasks, compute trends. Ralph's markdown summaries require human reading.
 
-**Key strength:** Ralph's JSONL event log is a structured event stream that could be post-processed. The harness does not have an equivalent event bus — it captures snapshots (before/after), not a continuous event stream.
+**Key strength:** Ralph's JSONL event log is a structured event stream that could be post-processed. Rein does not have an equivalent event bus — it captures snapshots (before/after), not a continuous event stream.
 
 ---
 
-## 6. What Ralph Could Learn from the Harness
+## 6. What Ralph Could Learn from Rein
 
 1. **Structured JSON reports** — machine-readable summaries for CI/CD integration and trend analysis
 2. **Normalized token accounting** — consistent metrics regardless of backend
 3. **Quality scoring** — a formal score per run, not just "did it complete"
 4. **Context pressure tracking** — utilization % as a quality signal
 
-## 7. What the Harness Could Learn from Ralph
+## 7. What Rein Could Learn from Ralph
 
 1. **JSONL event stream** — continuous structured events during execution, not just before/after snapshots
-2. **Per-iteration telemetry** — the harness runs one session per task; ralph's per-iteration granularity reveals patterns within a task
-3. **Task-level progress tracking** — ralph tracks which tasks are done, abandoned, blocked — the harness only knows pass/fail at the end
+2. **Per-iteration telemetry** — rein runs one session per task; ralph's per-iteration granularity reveals patterns within a task
+3. **Task-level progress tracking** — ralph tracks which tasks are done, abandoned, blocked — rein only knows pass/fail at the end
 
 ---
 
@@ -138,4 +138,4 @@ The JSONL event log is the most machine-readable artifact. Each line is a JSON o
 
 - github.com/mikeyobrien/ralph-orchestrator (v2.7.0)
 - Source files: `summary_writer.rs`, `event_logger.rs`, `execution_outcome.rs`, `loop_state.rs`
-- TOKENS.md, ARCHITECTURE.md (agentic harness)
+- TOKENS.md, ARCHITECTURE.md (rein)

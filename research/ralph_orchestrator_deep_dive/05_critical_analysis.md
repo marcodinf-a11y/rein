@@ -2,7 +2,7 @@
 
 **Deep Dive Document 05 | March 2026**
 
-An adversarial assessment of ralph-orchestrator: what it gets right, what it gets wrong, and whether the harness needs anything from it.
+An adversarial assessment of ralph-orchestrator: what it gets right, what it gets wrong, and whether rein needs anything from it.
 
 ---
 
@@ -25,28 +25,28 @@ Supporting 8+ agent backends with per-hat backend overrides is practical — you
 
 ---
 
-## 2. What Ralph-Orchestrator Gets Wrong (Compared to the Harness)
+## 2. What Ralph-Orchestrator Gets Wrong (Compared to Rein)
 
 ### 2.1 No Real-Time Context Awareness
-This is the critical gap. Ralph has zero visibility into context window utilization *during* an iteration. If the agent hits compaction within a single iteration, ralph will not notice. The harness's real-time stream parsing and zone-based intervention is fundamentally more capable here. Ralph's design assumes iterations are short enough that within-iteration context exhaustion is rare — an assumption that breaks for complex tasks or large codebases.
+This is the critical gap. Ralph has zero visibility into context window utilization *during* an iteration. If the agent hits compaction within a single iteration, ralph will not notice. Rein's real-time stream parsing and zone-based intervention is fundamentally more capable here. Ralph's design assumes iterations are short enough that within-iteration context exhaustion is rare — an assumption that breaks for complex tasks or large codebases.
 
 ### 2.2 No Structured Evaluation
-Ralph produces markdown summaries, not structured reports. There is no quality score, no normalized metrics, no cross-run comparison. "Did the loop complete?" is a binary outcome, not an evaluation. The harness's structured JSON reports with binary scoring, normalized token usage, and context pressure data are designed for systematic analysis. Ralph is designed for "run and eyeball the result."
+Ralph produces markdown summaries, not structured reports. There is no quality score, no normalized metrics, no cross-run comparison. "Did the loop complete?" is a binary outcome, not an evaluation. Rein's structured JSON reports with binary scoring, normalized token usage, and context pressure data are designed for systematic analysis. Ralph is designed for "run and eyeball the result."
 
 ### 2.3 Brownfield Limitations Unaddressed
-Ralph's documentation does not discuss brownfield support. The scratchpad and event system assume greenfield — the agent builds something from scratch. For existing codebases, the initial context load (understanding the codebase) can exceed the scratchpad budget and the agent's context window. GitHub Issue #39 (agents don't work via ralph-orchestrator despite working directly) may be related to prompt size for real-world projects. The harness's worktree/copy/tempdir sandbox model is explicitly designed for brownfield.
+Ralph's documentation does not discuss brownfield support. The scratchpad and event system assume greenfield — the agent builds something from scratch. For existing codebases, the initial context load (understanding the codebase) can exceed the scratchpad budget and the agent's context window. GitHub Issue #39 (agents don't work via ralph-orchestrator despite working directly) may be related to prompt size for real-world projects. Rein's worktree/copy/tempdir sandbox model is explicitly designed for brownfield.
 
 ### 2.4 Cost Tracking Is Passive
-Ralph tracks cumulative cost from backend metadata but does not use it for quality decisions. Cost is a termination condition (`max_cost_usd`), not a quality signal. The harness's token budget with utilization percentages and warnings provides cost visibility during execution, not just as a kill switch.
+Ralph tracks cumulative cost from backend metadata but does not use it for quality decisions. Cost is a termination condition (`max_cost_usd`), not a quality signal. Rein's token budget with utilization percentages and warnings provides cost visibility during execution, not just as a kill switch.
 
 ### 2.5 Token Normalization Missing
-Each backend reports tokens differently (or not at all). Ralph passes through whatever the backend says. The harness's `NormalizedTokenUsage` ensures consistent accounting regardless of agent — cache tokens are normalized, thinking tokens excluded, total always equals input + output. Without normalization, cross-backend comparison is meaningless.
+Each backend reports tokens differently (or not at all). Ralph passes through whatever the backend says. Rein's `NormalizedTokenUsage` ensures consistent accounting regardless of agent — cache tokens are normalized, thinking tokens excluded, total always equals input + output. Without normalization, cross-backend comparison is meaningless.
 
 ---
 
 ## 3. Gaps
 
-| Gap | Status in ralph-orchestrator | Status in Harness |
+| Gap | Status in ralph-orchestrator | Status in Rein |
 |-----|----------------------------|-------------------|
 | Brownfield support | Not addressed | Worktree/copy/tempdir |
 | Multi-agent (parallel tasks) | Git worktree per loop + merge queue | Not yet (planned) |
@@ -58,7 +58,7 @@ Each backend reports tokens differently (or not at all). Ralph passes through wh
 
 **Ralph is ahead on:** multi-agent parallel execution (worktree-per-loop with merge queue), stagnation detection, and human-in-the-loop interaction (Telegram, TUI, web dashboard).
 
-**The harness is ahead on:** context-aware monitoring, structured evaluation, brownfield support, normalized accounting, and production-grade safety (subprocess isolation, deterministic validation).
+**Rein is ahead on:** context-aware monitoring, structured evaluation, brownfield support, normalized accounting, and production-grade safety (subprocess isolation, deterministic validation).
 
 ---
 
@@ -93,24 +93,24 @@ Each backend reports tokens differently (or not at all). Ralph passes through wh
 
 ## 6. The Honest Question
 
-> Does the harness need anything from ralph-orchestrator, or has it already surpassed it?
+> Does rein need anything from ralph-orchestrator, or has it already surpassed it?
 
-**Answer: The harness has surpassed ralph-orchestrator in its core mission (context-pressure-aware monitoring and structured evaluation) but can learn from ralph-orchestrator's iteration-level patterns.**
+**Answer: Rein has surpassed ralph-orchestrator in its core mission (context-pressure-aware monitoring and structured evaluation) but can learn from ralph-orchestrator's iteration-level patterns.**
 
 Specifically:
 
-**The harness does NOT need:**
-- Ralph's hat system (the harness is agent-agnostic, not agent-persona-driven)
-- Ralph's event bus (the harness's single-session model doesn't need inter-iteration messaging)
-- Ralph's Telegram/TUI/dashboard (the harness is headless by design)
-- Ralph's scratchpad (the harness has seed files + LEARNINGS.md)
+**Rein does NOT need:**
+- Ralph's hat system (rein is agent-agnostic, not agent-persona-driven)
+- Ralph's event bus (Rein's single-session model doesn't need inter-iteration messaging)
+- Ralph's Telegram/TUI/dashboard (rein is headless by design)
+- Ralph's scratchpad (rein has seed files + LEARNINGS.md)
 
-**The harness COULD benefit from:**
-- **Stagnation detection patterns** — ralph's three-detector approach (stale, thrashing, consecutive failures) is well-designed and maps to the harness's planned stagnation detection
+**Rein COULD benefit from:**
+- **Stagnation detection patterns** — ralph's three-detector approach (stale, thrashing, consecutive failures) is well-designed and maps to Rein's planned stagnation detection
 - **Backpressure gates** — running validation between sessions (not just after the final session) for multi-session workflows
-- **JSONL event logging** — a structured event stream during execution would complement the harness's before/after snapshot model
+- **JSONL event logging** — a structured event stream during execution would complement Rein's before/after snapshot model
 
-But these are patterns to study, not code to integrate. The harness's architecture is fundamentally different (monitored single sessions vs. unmonitored iteration loops), and ralph's patterns need adaptation, not adoption.
+But these are patterns to study, not code to integrate. Rein's architecture is fundamentally different (monitored single sessions vs. unmonitored iteration loops), and ralph's patterns need adaptation, not adoption.
 
 ---
 
@@ -120,5 +120,5 @@ But these are patterns to study, not code to integrate. The harness's architectu
 - GitHub Issue #39: agents don't work via ralph-orchestrator
 - Medium article: Verdier, "Ralph Orchestrator: Solving the Context Window Crisis" (Jan 2026)
 - Traycer blog: "Ralph Loops. Bart Orchestrates." (traycer.ai)
-- ARCHITECTURE.md, TOKENS.md, SESSIONS.md (agentic harness)
+- ARCHITECTURE.md, TOKENS.md, SESSIONS.md (rein)
 - research/ralph_wiggum_deep_dive/00_synthesis.md

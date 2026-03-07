@@ -2,7 +2,7 @@
 
 **Deep Dive Document 04 | March 2026**
 
-A systematic analysis of how Ralph Loops fail, how failures are detected (or not), and how the harness's design addresses each failure mode.
+A systematic analysis of how Ralph Loops fail, how failures are detected (or not), and how Rein's design addresses each failure mode.
 
 ---
 
@@ -18,7 +18,7 @@ Ralph Loop failures fall into five categories, ordered by severity:
 
 **Root cause:** Coupled dependencies. The agent lacks the context to see that A and B are linked — each iteration sees only the current failure, not the history of alternating fixes.
 
-**Harness mitigation:** Stagnation detection. By tracking test results across sessions, the harness can identify repeated failure patterns and escalate to the operator. The harness also preserves enough session context (via reports) for the operator to diagnose oscillation from the output.
+**Rein mitigation:** Stagnation detection. By tracking test results across sessions, rein can identify repeated failure patterns and escalate to the operator. Rein also preserves enough session context (via reports) for the operator to diagnose oscillation from the output.
 
 ### 1.2 Overbaking
 
@@ -28,7 +28,7 @@ Ralph Loop failures fall into five categories, ordered by severity:
 
 **Example:** The agent refactors functional code for hours to fix a minor environmental issue. The code was working; the agent makes it worse through unnecessary changes.
 
-**Harness mitigation:** The completion promise pattern (Section 7 of synthesis) provides a signal. Combined with the quality gate (validation commands pass → task is done), the harness can detect when further iteration adds no value. The token budget provides a hard stop on cost.
+**Rein mitigation:** The completion promise pattern (Section 7 of synthesis) provides a signal. Combined with the quality gate (validation commands pass → task is done), rein can detect when further iteration adds no value. The token budget provides a hard stop on cost.
 
 ### 1.3 Reward Hacking
 
@@ -42,7 +42,7 @@ Ralph Loop failures fall into five categories, ordered by severity:
 
 **Root cause:** The agent has no model of the developer's intent beyond the prompt. If the prompt says "make tests pass," the agent's fastest path may be to change the tests.
 
-**Harness mitigation:** Operator-defined validation commands are harder to game than test-pass/fail. The operator can specify:
+**Rein mitigation:** Operator-defined validation commands are harder to game than test-pass/fail. The operator can specify:
 - `pytest --tb=short` (run tests)
 - `git diff --stat` (check diff size is reasonable)
 - `rg "skip\|TODO\|FIXME\|placeholder" --count` (detect shortcuts)
@@ -57,7 +57,7 @@ The quality gate evaluates the *operator's* criteria, not the agent's self-asses
 
 **Root cause:** The stop hook variant violates Ralph's core principle (discard context). By keeping the session alive, it reintroduces the context rot problem the technique was designed to prevent.
 
-**Harness mitigation:** The harness uses process-level isolation — each session is a new subprocess with fresh context. No compaction occurs because context never accumulates beyond one session. This is architecturally immune to compaction corruption.
+**Rein mitigation:** Rein uses process-level isolation — each session is a new subprocess with fresh context. No compaction occurs because context never accumulates beyond one session. This is architecturally immune to compaction corruption.
 
 ### 1.5 Cascading Destruction
 
@@ -67,16 +67,16 @@ The quality gate evaluates the *operator's* criteria, not the agent's self-asses
 
 **Example from the Principal Skinner analysis:** "A numerical limit does not prevent an agent from deleting a database in the second iteration."
 
-**Harness mitigation:**
+**Rein mitigation:**
 - **Sandbox isolation:** The agent operates in a worktree or tempdir, not the main working tree
-- **Git-based rollback:** The harness can restore prior state if validation fails
-- **Subprocess control:** The harness can kill the agent at any point via SIGTERM/SIGKILL
+- **Git-based rollback:** Rein can restore prior state if validation fails
+- **Subprocess control:** Rein can kill the agent at any point via SIGTERM/SIGKILL
 
 ---
 
-## 2. Failure Mode Comparison: Ralph vs. Harness
+## 2. Failure Mode Comparison: Ralph vs. Rein
 
-| Failure Mode | Ralph Detection | Ralph Recovery | Harness Detection | Harness Recovery |
+| Failure Mode | Ralph Detection | Ralph Recovery | Rein Detection | Rein Recovery |
 |-------------|----------------|----------------|-------------------|------------------|
 | Oscillation | None | Iteration cap | Stagnation detection across sessions | Operator escalation |
 | Overbaking | None | Iteration cap / Ctrl+C | Completion promise + quality gate | Automatic stop when validation passes |
@@ -118,9 +118,9 @@ No formal study of Ralph Loop convergence rates exists. Anecdotal evidence:
 
 The absence of failure rate data is telling. Success stories are reported; failures are not. Selection bias is severe.
 
-### 3.3 Harness Approach to Convergence
+### 3.3 Rein's Approach to Convergence
 
-The harness does not guarantee convergence either — no system can guarantee that an LLM will produce correct code. But it provides:
+Rein does not guarantee convergence either — no system can guarantee that an LLM will produce correct code. But it provides:
 - **Bounded cost:** Token budget caps spending regardless of convergence
 - **Bounded time:** Zone-based kills prevent indefinite execution
 - **Failure visibility:** Structured reports show exactly what failed and why
@@ -140,19 +140,19 @@ Ralph places no restrictions on what the agent can do. If the prompt says "imple
 - Access environment variables containing credentials
 - Modify files outside the project scope
 
-The harness's subprocess isolation and sandbox provide containment. The agent operates in a controlled environment, not the host filesystem.
+Rein's subprocess isolation and sandbox provide containment. The agent operates in a controlled environment, not the host filesystem.
 
 ### 4.2 No Action Attribution
 
 When Ralph commits code, it's attributed to the human developer (git config). There's no distinction between human-authored and agent-authored code in the history. The Principal Skinner analysis recommends unique SSH keys and agent IDs for proper attribution.
 
-The harness tracks agent identity per session — the report records which agent, model, and effort level produced each result.
+Rein tracks agent identity per session — the report records which agent, model, and effort level produced each result.
 
 ### 4.3 No Adversarial Testing
 
 Ralph prompts are tested by running them. There is no pre-deployment adversarial simulation to identify "toxic flows" — sequences where agent reasoning degrades into destructive behavior. The Principal Skinner analysis recommends running thousands of simulated trajectories before production deployment.
 
-The harness's evaluation framework could support this: run the same task N times, analyze failure modes across runs, identify patterns before committing to production use.
+Rein's evaluation framework could support this: run the same task N times, analyze failure modes across runs, identify patterns before committing to production use.
 
 ---
 
@@ -162,4 +162,4 @@ The harness's evaluation framework could support this: run the same task N times
 - "Ralph Wiggum Loop." beuke.org
 - Huntley, Geoffrey. "Ralph Wiggum as a software engineer." ghuntley.com/ralph/
 - "From ReAct to Ralph Loop." Alibaba Cloud Community
-- Agentic Harness ARCHITECTURE.md, SESSIONS.md
+- Rein ARCHITECTURE.md, SESSIONS.md

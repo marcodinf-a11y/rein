@@ -344,15 +344,15 @@ The Blueprint pattern is notably **simpler** than most orchestration frameworks.
 
 ---
 
-## Key Architectural Insights for the Agentic Harness
+## Key Architectural Insights for Rein
 
-1. **Deterministic wrapping is the key pattern.** The highest-value insight from the Blueprint pattern is not the agent loop itself, but the deterministic nodes that surround it. Linting, testing, git operations, and CI triggers do not need LLM involvement. The harness should identify which steps in its pipeline can be deterministic.
+1. **Deterministic wrapping is the key pattern.** The highest-value insight from the Blueprint pattern is not the agent loop itself, but the deterministic nodes that surround it. Linting, testing, git operations, and CI triggers do not need LLM involvement. Rein should identify which steps in its pipeline can be deterministic.
 
-2. **Tool curation, not tool proliferation.** Stripe's 400+ tools are available but only ~15 are exposed per task. This is a critical context window optimization. The harness should consider per-task tool filtering.
+2. **Tool curation, not tool proliferation.** Stripe's 400+ tools are available but only ~15 are exposed per task. This is a critical context window optimization. Rein should consider per-task tool filtering.
 
-3. **One-shot eliminates partial completion.** By scoping tasks tightly enough that they can be completed in a single agent invocation (plus bounded retries), Stripe avoids the entire class of "agent got stuck halfway" problems. The harness's context pressure monitoring is solving a problem that Stripe sidesteps by design.
+3. **One-shot eliminates partial completion.** By scoping tasks tightly enough that they can be completed in a single agent invocation (plus bounded retries), Stripe avoids the entire class of "agent got stuck halfway" problems. Rein's context pressure monitoring is solving a problem that Stripe sidesteps by design.
 
-4. **Bounded retries with hard caps.** The 2 CI round limit is a pragmatic engineering decision, not an optimization. Diminishing returns on retries are real -- the harness should consider similar hard caps.
+4. **Bounded retries with hard caps.** The 2 CI round limit is a pragmatic engineering decision, not an optimization. Diminishing returns on retries are real -- rein should consider similar hard caps.
 
 5. **Filesystem as state store.** Stripe does not use a complex state management system between nodes. The devbox filesystem is the shared state. This is simple and effective for coding tasks.
 

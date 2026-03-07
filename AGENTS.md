@@ -1,4 +1,4 @@
-# Agentic Harness — Agent Integration Reference
+# Rein — Agent Integration Reference
 
 Per-agent invocation syntax, JSON output formats, token field mappings, and quirks.
 
@@ -87,7 +87,7 @@ With `--output-format stream-json`, Claude emits newline-delimited JSON (NDJSON)
 - `message_delta`: carries cumulative `output_tokens` within the current message
 - `result`: final event with full aggregated usage (same schema as `--output-format json`)
 
-The harness reads this stream line by line, updating cumulative token counts and computing context pressure after each `message_delta` event. The `contextWindow` field from `modelUsage` in the final `result` event provides the denominator — on first run, the harness may not know the context window until this event arrives; for known models, the model metadata lookup provides it at invocation time.
+Rein reads this stream line by line, updating cumulative token counts and computing context pressure after each `message_delta` event. The `contextWindow` field from `modelUsage` in the final `result` event provides the denominator — on first run, rein may not know the context window until this event arrives; for known models, the model metadata lookup provides it at invocation time.
 
 **Caveat:** When extended thinking mode is enabled, `StreamEvent` emission is disabled. The stream produces only the final `result` event. Mid-run context pressure monitoring is not available in this mode.
 
@@ -162,7 +162,7 @@ Event types: `thread.started`, `turn.started`, `turn.completed`, `turn.failed`, 
 
 Token usage appears on `turn.completed` events as **per-turn deltas** (not cumulative). A single execution may have multiple turns — all must be summed for total usage.
 
-**Mid-run monitoring:** Events arrive in real-time, not buffered. The harness reads this stream line by line, summing `input_tokens` and `output_tokens` from each `turn.completed` event to compute cumulative usage and context pressure. If the process is killed mid-turn, that turn's usage is not emitted. On `SIGINT`, Codex emits a `TurnAborted` event before exiting.
+**Mid-run monitoring:** Events arrive in real-time, not buffered. Rein reads this stream line by line, summing `input_tokens` and `output_tokens` from each `turn.completed` event to compute cumulative usage and context pressure. If the process is killed mid-turn, that turn's usage is not emitted. On `SIGINT`, Codex emits a `TurnAborted` event before exiting.
 
 ### Token Field Mapping
 
@@ -220,7 +220,7 @@ codex exec resume <SESSION_ID>
 - **Runs in read-only sandbox** by default. `--full-auto` upgrades to `workspace-write`.
 - **Progress on stderr, results on stdout**: stderr gets streaming progress; stdout gets JSON events.
 - **Authentication**: `CODEX_API_KEY` env var (only supported in `codex exec` mode).
-- **Effort control**: Set via `--config 'model_reasoning_effort="<level>"'` (`minimal`, `low`, `medium`, `high`, `xhigh`). Requires Responses API wire protocol. Works with o3, o4-mini, gpt-5. The harness maps normalized `low`/`medium`/`high` values directly; Codex-specific `minimal` and `xhigh` are not available via the normalized `effort` field.
+- **Effort control**: Set via `--config 'model_reasoning_effort="<level>"'` (`minimal`, `low`, `medium`, `high`, `xhigh`). Requires Responses API wire protocol. Works with o3, o4-mini, gpt-5. Rein maps normalized `low`/`medium`/`high` values directly; Codex-specific `minimal` and `xhigh` are not available via the normalized `effort` field.
 
 ---
 
@@ -339,7 +339,7 @@ No documented session resume mechanism.
 ### Quirks and Limitations
 
 - **`prompt` / `candidates`** instead of `input` / `output` — different naming from the other two agents.
-- **`total` includes `thoughts`**: Gemini's own `total` field includes internal reasoning tokens. The harness computes its own total as `prompt + candidates` for consistency.
+- **`total` includes `thoughts`**: Gemini's own `total` field includes internal reasoning tokens. Rein computes its own total as `prompt + candidates` for consistency.
 - **JSON output can be unreliable**: GitHub issue #11184 reports `--output-format json` sometimes produces invalid JSON. The adapter should catch `json.JSONDecodeError` and fall back.
 - **No cost reporting**: Gemini CLI does not report cost in its output. Maps to `null` in results.
 - **Free tier limits**: 60 requests/min, 1,000 requests/day, 1M token context window on Gemini 2.5 Pro.

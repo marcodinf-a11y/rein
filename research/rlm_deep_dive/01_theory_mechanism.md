@@ -2,21 +2,21 @@
 
 **Deep Dive Document 01 | March 2026**
 
-This document analyzes the theoretical relationship between Recursive Language Models (arXiv:2512.24601) and the agentic harness's context pressure model. It builds on the findings in [`research/rlm-research-findings.md`](../rlm-research-findings.md) and the degradation research in [`research/02_context_degradation_research.md`](../02_context_degradation_research.md) without duplicating their content.
+This document analyzes the theoretical relationship between Recursive Language Models (arXiv:2512.24601) and Rein's context pressure model. It builds on the findings in [`research/rlm-research-findings.md`](../rlm-research-findings.md) and the degradation research in [`research/02_context_degradation_research.md`](../02_context_degradation_research.md) without duplicating their content.
 
 ---
 
 ## 1. Context-as-Variable vs. Pressure Monitoring
 
-RLMs and the harness address the same root problem — context rot — but intervene at fundamentally different layers of the stack.
+RLMs and rein address the same root problem — context rot — but intervene at fundamentally different layers of the stack.
 
 **RLM: Inference-level intervention.** The full prompt is stored as a Python string variable in a REPL. The model never ingests the raw context through its attention mechanism. Instead, it writes code to print slices, regex-search, chunk, and filter the context programmatically. Sub-tasks are delegated to plain LM calls via `llm_query()`. The neural network only ever sees small, model-selected fragments of the original input (Zhang, Kraska, Khattab — arXiv:2512.24601).
 
-**Harness: Orchestrator-level intervention.** The harness monitors token consumption in real-time as the agent works. Context pressure (estimated_tokens_used / model_context_window x 100) is tracked continuously. When pressure crosses zone thresholds — green (0-60%), yellow (60-80%), red (>80%) — the orchestrator intervenes: gracefully stopping the agent, persisting work via git commits, or immediately killing the process. Each subsequent task gets a fresh context at zero pressure, with artifacts carrying forward through seed files (ARCHITECTURE.md).
+**Rein: Orchestrator-level intervention.** Rein monitors token consumption in real-time as the agent works. Context pressure (estimated_tokens_used / model_context_window x 100) is tracked continuously. When pressure crosses zone thresholds — green (0-60%), yellow (60-80%), red (>80%) — the orchestrator intervenes: gracefully stopping the agent, persisting work via git commits, or immediately killing the process. Each subsequent task gets a fresh context at zero pressure, with artifacts carrying forward through seed files (ARCHITECTURE.md).
 
 These approaches are **complementary, not competing**, and they operate on orthogonal axes:
 
-| Dimension | RLM | Harness Pressure Monitor |
+| Dimension | RLM | Rein Pressure Monitor |
 |-----------|-----|--------------------------|
 | Scope | Single inference call | Across an entire session of calls |
 | What it controls | How much context enters the forward pass | How long an agent runs before context accumulates |
@@ -24,9 +24,9 @@ These approaches are **complementary, not competing**, and they operate on ortho
 | Mechanism | Programmatic context selection via code | Token accounting and process lifecycle management |
 | Information preservation | Full (raw text in REPL variable) | Partial (artifacts and git diffs, not full history) |
 
-An RLM prevents pressure from building up *within* a single call by ensuring only relevant slices enter the attention window. The harness manages pressure *across* calls by killing agents before accumulated conversation history degrades quality. A system could use both: RLM-style context offloading for individual large-context tasks, wrapped in harness-style pressure monitoring for multi-turn session management.
+An RLM prevents pressure from building up *within* a single call by ensuring only relevant slices enter the attention window. Rein manages pressure *across* calls by killing agents before accumulated conversation history degrades quality. A system could use both: RLM-style context offloading for individual large-context tasks, wrapped in rein-style pressure monitoring for multi-turn session management.
 
-The one area of genuine overlap is the harness's multi-session decomposition pattern (Section 4 below), which achieves something similar to RLM's internal decomposition but at the orchestrator level. Even here, they remain complementary — multi-session decomposition manages *session-level* context accumulation, while RLM manages *task-level* context that exceeds what a single forward pass can handle.
+The one area of genuine overlap is Rein's multi-session decomposition pattern (Section 4 below), which achieves something similar to RLM's internal decomposition but at the orchestrator level. Even here, they remain complementary — multi-session decomposition manages *session-level* context accumulation, while RLM manages *task-level* context that exceeds what a single forward pass can handle.
 
 ---
 
@@ -44,9 +44,9 @@ There are reasons to believe this is **partially fundamental and partially fixab
 
 **The error rate arithmetic:** If each recursion level has a per-step error probability *p*, then depth-*d* recursion compounds to roughly 1-(1-p)^d for independent steps. For the observed depth-1 accuracy of 42.1% dropping to 33.7% at depth-2, this implies each level contributes roughly 20% degradation — a steep tax. Reliable depth > 1 would require reducing per-level error rates substantially, likely through fine-tuning models specifically for recursive operation rather than relying on prompting alone.
 
-### Implications for the Harness
+### Implications for Rein
 
-The harness's multi-session decomposition strategy is effectively depth-1 recursion with a human-designed decomposition plan (the task sequence). The harness avoids depth > 1 by design — each session is independent, receiving only seed artifacts rather than delegating sub-tasks that must return results. This sidesteps the compounding-error problem entirely, at the cost of requiring the operator to pre-define the decomposition rather than letting the model discover it. If reliable depth-2+ RLM recursion were achieved, it would validate the idea that models can autonomously decompose complex tasks — potentially allowing the harness to move from operator-defined task sequences to model-driven decomposition.
+Rein's multi-session decomposition strategy is effectively depth-1 recursion with a human-designed decomposition plan (the task sequence). Rein avoids depth > 1 by design — each session is independent, receiving only seed artifacts rather than delegating sub-tasks that must return results. This sidesteps the compounding-error problem entirely, at the cost of requiring the operator to pre-define the decomposition rather than letting the model discover it. If reliable depth-2+ RLM recursion were achieved, it would validate the idea that models can autonomously decompose complex tasks — potentially allowing rein to move from operator-defined task sequences to model-driven decomposition.
 
 ---
 
@@ -62,21 +62,21 @@ This result is **theoretically significant but practically distant** from coding
 
 2. **3B model limitation.** The proof-of-concept model is far below the capability threshold needed for real coding tasks. The RLM paper itself showed that model quality matters enormously: GPT-5 achieved 91.33% on BrowseComp+ vs. Qwen3-Coder's 44.66% (arXiv:2512.24601). Smaller models struggle with the code generation required for effective REPL interaction.
 
-3. **Exponential context reduction vs. practical thresholds.** The theorem guarantees *exponentially* smaller active context, but the constant factors and the nature of the decomposition matter. For the harness's collapse threshold (32K-128K tokens, per the composite degradation curve in 02_context_degradation_research.md), the relevant question is not whether context *can* be reduced exponentially, but whether practical decomposition can keep each sub-call's active context below the 4K-16K "mild decay" zone. The theorem does not address whether the resulting sub-problems remain solvable by current models.
+3. **Exponential context reduction vs. practical thresholds.** The theorem guarantees *exponentially* smaller active context, but the constant factors and the nature of the decomposition matter. For Rein's collapse threshold (32K-128K tokens, per the composite degradation curve in 02_context_degradation_research.md), the relevant question is not whether context *can* be reduced exponentially, but whether practical decomposition can keep each sub-call's active context below the 4K-16K "mild decay" zone. The theorem does not address whether the resulting sub-problems remain solvable by current models.
 
 4. **Decomposition overhead.** The theorem counts active context but not the overhead of managing the decomposition itself — the system prompt, REPL state, and coordination logic that consume tokens in every sub-call. In practice, the RLM system prompt alone is approximately 6,200 characters (arXiv:2512.24601), which consumes a non-trivial fraction of a small model's effective context.
 
-### What This Means for the Harness
+### What This Means for Rein
 
-The theoretical result validates the harness's core assumption: that decomposing large tasks into smaller-context sub-tasks is not just an engineering convenience but a mathematically sound strategy. However, the gap between "any computable problem admits decomposition" and "an LLM can discover and execute that decomposition on a coding task" remains vast. The harness's pragmatic approach — operator-defined decomposition with empirically measured pressure thresholds — is likely to remain more reliable than model-driven decomposition for the foreseeable future.
+The theoretical result validates Rein's core assumption: that decomposing large tasks into smaller-context sub-tasks is not just an engineering convenience but a mathematically sound strategy. However, the gap between "any computable problem admits decomposition" and "an LLM can discover and execute that decomposition on a coding task" remains vast. Rein's pragmatic approach — operator-defined decomposition with empirically measured pressure thresholds — is likely to remain more reliable than model-driven decomposition for the foreseeable future.
 
 ---
 
-## 4. RLM vs. Harness Multi-Session Decomposition
+## 4. RLM vs. Rein Multi-Session Decomposition
 
 Both approaches break large tasks into smaller pieces processed with limited active context. The mechanisms differ substantially.
 
-| Dimension | RLM Internal Decomposition | Harness Multi-Session |
+| Dimension | RLM Internal Decomposition | Rein Multi-Session |
 |-----------|---------------------------|----------------------|
 | **Decomposition agent** | The model itself (via code in REPL) | The operator (pre-defined task sequence) |
 | **Latency** | Single API call, but with sequential sub-calls internally; total latency can be high and variable | Multiple independent sessions; parallelizable if tasks are independent |
@@ -93,7 +93,7 @@ Both approaches break large tasks into smaller pieces processed with limited act
 - The decomposition strategy is not obvious in advance and benefits from model-driven exploration (e.g., "find all security vulnerabilities in this 900K-token codebase")
 - Latency tolerance is high and cost variance is acceptable
 
-**Prefer harness multi-session when:**
+**Prefer rein multi-session when:**
 - The task has a natural sequential structure (implement feature A, then add tests, then update documentation)
 - Cost predictability and operator control are priorities
 - The work products (code, configs, tests) serve as natural inter-session artifacts
@@ -106,7 +106,7 @@ Both approaches break large tasks into smaller pieces processed with limited act
 
 ## 5. Connection to Context Degradation Research
 
-The harness's context degradation research (02_context_degradation_research.md) identified five key degradation factors. How does RLM's context-as-variable approach interact with each?
+Rein's context degradation research (02_context_degradation_research.md) identified five key degradation factors. How does RLM's context-as-variable approach interact with each?
 
 ### 5.1 Sheer Input Length Degrades Reasoning (13.9-85%)
 
@@ -142,11 +142,11 @@ The harness's context degradation research (02_context_degradation_research.md) 
 
 ## Summary Assessment
 
-RLM's context-as-variable mechanism and the harness's pressure monitoring model are **complementary strategies operating at different abstraction levels**. RLM solves the problem of processing inputs that exceed what a single forward pass can handle. The harness solves the problem of managing context accumulation across a multi-turn agent session. Neither makes the other redundant.
+RLM's context-as-variable mechanism and Rein's pressure monitoring model are **complementary strategies operating at different abstraction levels**. RLM solves the problem of processing inputs that exceed what a single forward pass can handle. Rein solves the problem of managing context accumulation across a multi-turn agent session. Neither makes the other redundant.
 
 The primary risk in RLM adoption is reliability: depth-2 recursion already shows significant degradation (arXiv:2603.02615), cost variance is high, and the approach is heavily model-dependent. The theoretical guarantee of exponential context reduction (arXiv:2603.02112) is real but far from practical applicability to coding tasks.
 
-For the harness, the most actionable insight from RLM research is the validation of decomposition as a strategy: if even a single-call system benefits from breaking large contexts into programmatically selected chunks, then the harness's multi-session decomposition — which achieves the same goal with higher reliability and operator control — is on solid theoretical ground. The practical question is not whether to decompose, but who controls the decomposition: the model (RLM) or the operator (harness). Current evidence favors operator control for reliability-critical workflows, with model-driven decomposition as a promising but immature alternative.
+For rein, the most actionable insight from RLM research is the validation of decomposition as a strategy: if even a single-call system benefits from breaking large contexts into programmatically selected chunks, then Rein's multi-session decomposition — which achieves the same goal with higher reliability and operator control — is on solid theoretical ground. The practical question is not whether to decompose, but who controls the decomposition: the model (RLM) or the operator (rein). Current evidence favors operator control for reliability-critical workflows, with model-driven decomposition as a promising but immature alternative.
 
 ---
 
@@ -161,6 +161,6 @@ For the harness, the most actionable insight from RLM research is the validation
 - Lindenbauer et al. "The Complexity Trap." NeurIPS 2025 DL4Code Workshop.
 - ICLR 2025 synthesis on precipitous long-context collapse.
 - Prime Intellect. "RLM: The Paradigm of 2026." primeintellect.ai/blog/rlm.
-- Agentic Harness ARCHITECTURE.md, SESSIONS.md.
-- Agentic Harness research/02_context_degradation_research.md.
-- Agentic Harness research/rlm-research-findings.md.
+- Rein ARCHITECTURE.md, SESSIONS.md.
+- Rein research/02_context_degradation_research.md.
+- Rein research/rlm-research-findings.md.

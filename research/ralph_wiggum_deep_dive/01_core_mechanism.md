@@ -120,7 +120,7 @@ This strategy has a clear connection to the context degradation research:
 | Lost in the middle (position bias) | The spec is always at the start of context; no "middle" to get lost in |
 | Observation masking reduces cost 50% | Ralph achieves 100% observation masking by discarding the entire conversation |
 
-The tradeoff is clear: Ralph pays a higher per-iteration cost (re-loading the spec) in exchange for zero context degradation risk. The harness's approach is more nuanced — it monitors degradation risk and intervenes only when necessary, preserving in-session context for as long as it remains useful.
+The tradeoff is clear: Ralph pays a higher per-iteration cost (re-loading the spec) in exchange for zero context degradation risk. Rein's approach is more nuanced — it monitors degradation risk and intervenes only when necessary, preserving in-session context for as long as it remains useful.
 
 ---
 
@@ -151,7 +151,7 @@ Huntley's implementation uses aggressive subagent parallelism:
 - **Up to 500 parallel subagents** for codebase analysis (search, read)
 - **Single-threaded** for validation (1 subagent for build/test)
 
-This asymmetry reflects the task structure: reading is parallelizable, writing is serializable. The harness's current design does not support intra-task subagent dispatch, though the planned multi-agent parallel execution could enable similar patterns.
+This asymmetry reflects the task structure: reading is parallelizable, writing is serializable. Rein's current design does not support intra-task subagent dispatch, though the planned multi-agent parallel execution could enable similar patterns.
 
 ---
 
@@ -176,4 +176,4 @@ Without the completion promise, the loop relies on the iteration cap — a blunt
 - Anthropic. "Claude Code Ralph Wiggum Plugin." github.com/anthropics/claude-code/plugins/ralph-wiggum
 - "Ralph Wiggum Loop." beuke.org
 - "From ReAct to Ralph Loop." Alibaba Cloud Community
-- Agentic Harness research/02_context_degradation_research.md
+- Rein research/02_context_degradation_research.md

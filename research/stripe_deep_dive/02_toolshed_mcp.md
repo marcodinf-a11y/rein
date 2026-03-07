@@ -82,7 +82,7 @@ The tool selection mechanism has two distinct phases:
 
 1. **Static selection by Blueprint**: Each Blueprint (task type template) specifies a base set of tools relevant to that category of work. A "fix flaky test" Blueprint would include test-related tools; a "documentation update" Blueprint would include doc-related tools.
 
-2. **Dynamic enrichment by orchestrator**: Before the agent loop begins, the orchestrator scans the task description/prompt for links, keywords, and references, then deterministically calls relevant MCP tools to pre-fetch context (ticket details, docs, code references). This is not the agent choosing tools -- it is the harness choosing tools for the agent.
+2. **Dynamic enrichment by orchestrator**: Before the agent loop begins, the orchestrator scans the task description/prompt for links, keywords, and references, then deterministically calls relevant MCP tools to pre-fetch context (ticket details, docs, code references). This is not the agent choosing tools -- it is rein choosing tools for the agent.
 
 This two-phase approach means the agent sees ~15 tools and pre-fetched context, not 500 tool definitions. The agent can still call tools during its loop, but from the curated subset.
 

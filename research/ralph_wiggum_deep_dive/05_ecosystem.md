@@ -46,7 +46,7 @@ Autonomous loop that runs until all PRD items are complete. Adds structured prog
 Reference implementation for the Vercel AI SDK. Demonstrates Ralph Loop patterns in a TypeScript/Next.js context.
 
 ### 3.3 mikeyobrien/ralph-orchestrator
-Enhanced orchestrator that adds context window management — tracking token usage and rotating context proactively. This is the closest community implementation to the harness's approach.
+Enhanced orchestrator that adds context window management — tracking token usage and rotating context proactively. This is the closest community implementation to rein's approach.
 
 ### 3.4 Th0rgal/open-ralph-wiggum
 Multi-agent support: runs Ralph Loops with Claude Code, Codex, Copilot, or Open Code. The first implementation to decouple the Ralph pattern from a specific agent.
@@ -106,7 +106,7 @@ Limited open-source adoption. The technique is well-suited for green-field open-
 
 ### 6.1 The "Gas Town" Pattern
 
-Huntley's emerging infrastructure project targets coordinating multiple Ralph Loops into "self-evolving ecosystems." Ten agents running concurrently, each on different tasks, with an orchestration layer managing the chaos. This is effectively a custom-built agentic harness — further validating that the Ralph Loop alone is insufficient for production use and naturally evolves toward harness-like orchestration.
+Huntley's emerging infrastructure project targets coordinating multiple Ralph Loops into "self-evolving ecosystems." Ten agents running concurrently, each on different tasks, with an orchestration layer managing the chaos. This is effectively a custom-built agentic rein — further validating that the Ralph Loop alone is insufficient for production use and naturally evolves toward rein-like orchestration.
 
 ### 6.2 Cursor/Windsurf Integration
 
@@ -158,7 +158,7 @@ Defenders argue that prompt engineering *is* the skill. Huntley repeatedly empha
 | Tooling maturity | Early | Multiple implementations, no standard |
 | Community health | Active | Growing but fragmented |
 
-**Overall assessment:** The Ralph Loop is a validated pattern for a narrow use case (greenfield, well-defined, machine-verifiable). It is not a production harness. Its natural evolution — Gas Town, ralph-orchestrator, Principal Skinner — points toward exactly the kind of structured orchestration the agentic harness provides.
+**Overall assessment:** The Ralph Loop is a validated pattern for a narrow use case (greenfield, well-defined, machine-verifiable). It is not a production system. Its natural evolution — Gas Town, ralph-orchestrator, Principal Skinner — points toward exactly the kind of structured orchestration the agentic rein provides.
 
 ---
 

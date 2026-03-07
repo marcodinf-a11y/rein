@@ -2,7 +2,7 @@
 
 **March 2026**
 
-This document synthesizes findings from six specialist analyses of the Ralph Wiggum Loop technique and its relevance to the agentic harness. Each section draws from the deep dive documents and cross-references harness design docs.
+This document synthesizes findings from six specialist analyses of the Ralph Wiggum Loop technique and its relevance to rein. Each section draws from the deep dive documents and cross-references rein design docs.
 
 ---
 
@@ -10,9 +10,9 @@ This document synthesizes findings from six specialist analyses of the Ralph Wig
 
 The Ralph Wiggum Loop ("Ralph Loop") is a viral agentic coding pattern created by Geoffrey Huntley in late 2025. It runs an AI coding agent in an infinite loop — `while :; do cat PROMPT.md | claude ; done` — where progress persists in files and git history rather than in the LLM's context window. Each iteration gets a fresh context, reads specs from disk, picks one task, implements it, and exits. A stop hook or bash loop restarts the process.
 
-The technique went viral, received an official Claude Code plugin from Anthropic, and is now widely adopted for greenfield projects. Its core insight — **git-as-memory with context rotation** — is architecturally significant and directly relevant to the harness. However, the technique has fundamental limitations: it works only for well-defined tasks with machine-verifiable success criteria, struggles with brownfield codebases, and has no formal convergence guarantees. Its failure modes (overbaking, oscillation, reward hacking) mirror classic feedback control problems.
+The technique went viral, received an official Claude Code plugin from Anthropic, and is now widely adopted for greenfield projects. Its core insight — **git-as-memory with context rotation** — is architecturally significant and directly relevant to rein. However, the technique has fundamental limitations: it works only for well-defined tasks with machine-verifiable success criteria, struggles with brownfield codebases, and has no formal convergence guarantees. Its failure modes (overbaking, oscillation, reward hacking) mirror classic feedback control problems.
 
-**The harness and the Ralph Loop solve the same problem (context rot) with convergent mechanisms but at different levels of sophistication.** The harness's context pressure monitoring, zone-based intervention, and structured evaluation are a formalized, production-grade version of what the Ralph Loop achieves through brute-force iteration. The relationship is less "should we integrate Ralph?" and more "Ralph validates the harness's core assumptions while the harness addresses Ralph's known failure modes."
+**Rein and the Ralph Loop solve the same problem (context rot) with convergent mechanisms but at different levels of sophistication.** Rein's context pressure monitoring, zone-based intervention, and structured evaluation are a formalized, production-grade version of what the Ralph Loop achieves through brute-force iteration. The relationship is less "should we integrate Ralph?" and more "Ralph validates Rein's core assumptions while rein addresses Ralph's known failure modes."
 
 ---
 
@@ -39,11 +39,11 @@ See [01 Core Mechanism](01_core_mechanism.md) for detailed analysis.
 
 ---
 
-## 3. Relationship to the Agentic Harness
+## 3. Relationship to the Rein
 
-**Finding: The Ralph Loop is a degenerate case of the harness's multi-session decomposition — same core insight, fewer safeguards.**
+**Finding: The Ralph Loop is a degenerate case of Rein's multi-session decomposition — same core insight, fewer safeguards.**
 
-| Dimension | Ralph Loop | Agentic Harness |
+| Dimension | Ralph Loop | Rein |
 |-----------|-----------|----------------|
 | Context management | Kill process, restart fresh | Monitor pressure, intervene at zone thresholds |
 | Memory persistence | Git commits + spec files | Git commits + seed files + structured artifacts |
@@ -55,12 +55,12 @@ See [01 Core Mechanism](01_core_mechanism.md) for detailed analysis.
 | Evaluation | Implicit (does it work?) | Explicit (normalized scores, reports) |
 | Brownfield support | Huntley: "no way in heck" | Worktree/copy isolation by design |
 
-The harness adds three capabilities Ralph lacks:
-1. **Real-time pressure monitoring** — the harness knows *during* execution how close the agent is to context degradation. Ralph discovers this only when quality drops.
-2. **Structured evaluation** — the harness runs validation commands and produces scored reports. Ralph relies on tests passing, with no normalized comparison across runs.
-3. **Cost visibility** — the harness tracks token usage per task with normalized accounting. Ralph has no cost tracking; loops can burn unlimited credits.
+Rein adds three capabilities Ralph lacks:
+1. **Real-time pressure monitoring** — rein knows *during* execution how close the agent is to context degradation. Ralph discovers this only when quality drops.
+2. **Structured evaluation** — rein runs validation commands and produces scored reports. Ralph relies on tests passing, with no normalized comparison across runs.
+3. **Cost visibility** — rein tracks token usage per task with normalized accounting. Ralph has no cost tracking; loops can burn unlimited credits.
 
-See [02 Harness Comparison](02_harness_comparison.md) for the full analysis.
+See [02 Rein Comparison](02_harness_comparison.md) for the full analysis.
 
 ---
 
@@ -70,11 +70,11 @@ See [02 Harness Comparison](02_harness_comparison.md) for the full analysis.
 
 ### 4.1 Context Rotation > Context Accumulation
 
-Ralph's core insight is correct and well-supported: it is better to discard context and restart fresh than to let it accumulate. This aligns with the harness's context degradation research (02_context_degradation_research.md) showing 13.9-85% reasoning degradation from sheer input length, and the observation masking finding (NeurIPS 2025) that dropping prior tool outputs costs nothing in quality. The harness already implements this through zone-based kills and fresh sessions — Ralph validates the approach from a different angle.
+Ralph's core insight is correct and well-supported: it is better to discard context and restart fresh than to let it accumulate. This aligns with Rein's context degradation research (02_context_degradation_research.md) showing 13.9-85% reasoning degradation from sheer input length, and the observation masking finding (NeurIPS 2025) that dropping prior tool outputs costs nothing in quality. Rein already implements this through zone-based kills and fresh sessions — Ralph validates the approach from a different angle.
 
 ### 4.2 Git as the Memory Layer
 
-Using git commits as inter-session memory is simple and effective. The agent's work products (code, configs, tests) are the artifacts, not conversation transcripts. The harness already uses git diffs and seed files for this purpose. Ralph's contribution is demonstrating that this works at scale — overnight runs producing complete repositories.
+Using git commits as inter-session memory is simple and effective. The agent's work products (code, configs, tests) are the artifacts, not conversation transcripts. Rein already uses git diffs and seed files for this purpose. Ralph's contribution is demonstrating that this works at scale — overnight runs producing complete repositories.
 
 ### 4.3 Spec-as-Prompt
 
@@ -86,7 +86,7 @@ See [03 Validated Patterns](03_validated_patterns.md).
 
 ## 5. What Ralph Gets Wrong
 
-**Finding: Five fundamental limitations make Ralph unsuitable as a production harness.**
+**Finding: Five fundamental limitations make Ralph unsuitable as a production system.**
 
 ### 5.1 No Convergence Guarantee
 
@@ -94,19 +94,19 @@ Ralph has no formal or empirical convergence guarantee. The loop may oscillate (
 
 ### 5.2 Reward Hacking
 
-Without structured evaluation, the agent optimizes for whatever is measurable — often disabling tests rather than fixing code, or implementing placeholder stubs that pass type checks but do nothing. The prompt includes "DO NOT IMPLEMENT PLACEHOLDER OR SIMPLE IMPLEMENTATIONS" in caps, which is a prompt-level mitigation for a systemic problem. The harness addresses this through validation commands defined by the operator, not by the agent.
+Without structured evaluation, the agent optimizes for whatever is measurable — often disabling tests rather than fixing code, or implementing placeholder stubs that pass type checks but do nothing. The prompt includes "DO NOT IMPLEMENT PLACEHOLDER OR SIMPLE IMPLEMENTATIONS" in caps, which is a prompt-level mitigation for a systemic problem. Rein addresses this through validation commands defined by the operator, not by the agent.
 
 ### 5.3 No Cost Control
 
-A stuck Ralph loop burns unlimited API credits. The $50K-to-$297 success story is cherry-picked; medium tasks cost $50-150 per run, and stuck loops can cost far more before human intervention. The harness's token budget with real-time monitoring is a direct solution to this problem.
+A stuck Ralph loop burns unlimited API credits. The $50K-to-$297 success story is cherry-picked; medium tasks cost $50-150 per run, and stuck loops can cost far more before human intervention. Rein's token budget with real-time monitoring is a direct solution to this problem.
 
 ### 5.4 Brownfield Blindness
 
-Huntley explicitly states: "There's no way in heck would I use Ralph in an existing code base." Large codebases exceed the context window, and the agent loses track of decisions made in prior iterations. The harness's sandbox isolation (worktree, copy, tempdir) and seed file mechanism are designed for brownfield use.
+Huntley explicitly states: "There's no way in heck would I use Ralph in an existing code base." Large codebases exceed the context window, and the agent loses track of decisions made in prior iterations. Rein's sandbox isolation (worktree, copy, tempdir) and seed file mechanism are designed for brownfield use.
 
 ### 5.5 Supervision Vacuum
 
-The "Principal Skinner" critique (securetrajectories.substack.com) is accurate: iteration caps are financial circuit breakers, not governance. An agent can delete a database on iteration 2. Ralph's prompt-level safety ("don't do X") is probabilistic, not deterministic. The harness's subprocess isolation, controlled tool access, and structured evaluation provide deterministic safeguards.
+The "Principal Skinner" critique (securetrajectories.substack.com) is accurate: iteration caps are financial circuit breakers, not governance. An agent can delete a database on iteration 2. Ralph's prompt-level safety ("don't do X") is probabilistic, not deterministic. Rein's subprocess isolation, controlled tool access, and structured evaluation provide deterministic safeguards.
 
 See [04 Failure Modes](04_failure_modes.md).
 
@@ -130,34 +130,34 @@ See [05 Ecosystem](05_ecosystem.md).
 
 ---
 
-## 7. Implications for the Harness
+## 7. Implications for Rein
 
-### 7.1 The Harness Is Already a Better Ralph
+### 7.1 Rein Is Already a Better Ralph
 
-The harness's multi-session decomposition with context pressure monitoring is a formalized Ralph Loop:
+Rein's multi-session decomposition with context pressure monitoring is a formalized Ralph Loop:
 - Fresh context each session = fresh context each iteration
 - Seed files = spec files re-read each iteration
 - Zone-based intervention = iteration cap (but with real-time awareness)
 - Structured reports = `fix_plan.md` (but with normalized metrics)
 - Quality gate = tests passing (but with operator-defined validation)
 
-The harness does not need to "integrate" Ralph. It already implements Ralph's core insight with production-grade safeguards.
+Rein does not need to "integrate" Ralph. It already implements Ralph's core insight with production-grade safeguards.
 
 ### 7.2 Adopt: Completion Promise Pattern
 
-Ralph's "completion promise" — a specific string the agent must emit to signal genuine completion — is a useful addition to the harness's quality gate. Currently, the harness evaluates success via validation commands after the agent exits. A completion promise would let the agent signal "I believe I'm done" as a structured event, which the harness could cross-reference against validation results. This is low-effort and adds signal.
+Ralph's "completion promise" — a specific string the agent must emit to signal genuine completion — is a useful addition to Rein's quality gate. Currently, rein evaluates success via validation commands after the agent exits. A completion promise would let the agent signal "I believe I'm done" as a structured event, which rein could cross-reference against validation results. This is low-effort and adds signal.
 
 ### 7.3 Adopt: Agent Self-Learning File
 
-Ralph's `AGENT.md` pattern — where the agent writes down what it learns about the codebase (correct build commands, compiler quirks, test patterns) — is valuable for multi-session workflows. The harness could support an optional `LEARNINGS.md` seed file that persists across sessions, allowing later sessions to benefit from earlier discoveries. This is distinct from the task-level seed files (which carry forward code artifacts) — it carries forward *operational knowledge*.
+Ralph's `AGENT.md` pattern — where the agent writes down what it learns about the codebase (correct build commands, compiler quirks, test patterns) — is valuable for multi-session workflows. Rein could support an optional `LEARNINGS.md` seed file that persists across sessions, allowing later sessions to benefit from earlier discoveries. This is distinct from the task-level seed files (which carry forward code artifacts) — it carries forward *operational knowledge*.
 
 ### 7.4 Consider: Autonomous Multi-Task Mode
 
-Ralph's "loop until done" behavior is useful for batch processing of well-defined, independently verifiable tasks. The harness could offer an autonomous mode: given a list of tasks with validation commands, execute them sequentially with fresh context per task, stopping on the first failure or when all pass. This is Ralph without the infinite loop — bounded, monitored, and evaluated.
+Ralph's "loop until done" behavior is useful for batch processing of well-defined, independently verifiable tasks. Rein could offer an autonomous mode: given a list of tasks with validation commands, execute them sequentially with fresh context per task, stopping on the first failure or when all pass. This is Ralph without the infinite loop — bounded, monitored, and evaluated.
 
 ### 7.5 Do Not Adopt: Stop Hook Pattern
 
-The stop hook variant (re-injecting the prompt within the same session) works against the harness's core design. It prevents context rotation, encourages context accumulation, and makes pressure monitoring unreliable. Huntley himself warns against it. The harness should continue using process-level isolation (kill and restart).
+The stop hook variant (re-injecting the prompt within the same session) works against Rein's core design. It prevents context rotation, encourages context accumulation, and makes pressure monitoring unreliable. Huntley himself warns against it. Rein should continue using process-level isolation (kill and restart).
 
 ---
 
@@ -167,7 +167,7 @@ The stop hook variant (re-injecting the prompt within the same session) works ag
 
 | Action | Rationale | Effort |
 |--------|-----------|--------|
-| **Add completion promise to quality gate** | Agent emits a structured "I'm done" signal. Harness cross-references against validation. Adds signal at zero cost. | Low |
+| **Add completion promise to quality gate** | Agent emits a structured "I'm done" signal. Rein cross-references against validation. Adds signal at zero cost. | Low |
 | **Support LEARNINGS.md seed file** | Persistent operational knowledge across sessions. Agent writes build/test discoveries; later sessions read them. | Low |
 | **Document Ralph Loop equivalence** | Add a section to ARCHITECTURE.md explaining how multi-session decomposition achieves what Ralph achieves, with links to this deep dive. | Low |
 
@@ -175,7 +175,7 @@ The stop hook variant (re-injecting the prompt within the same session) works ag
 
 | Action | Trigger | Effort |
 |--------|---------|--------|
-| **Autonomous batch mode** | When the harness supports sequential multi-task execution. Process a task list with fresh context per task, stopping on first failure or all-pass. | Medium |
+| **Autonomous batch mode** | When rein supports sequential multi-task execution. Process a task list with fresh context per task, stopping on first failure or all-pass. | Medium |
 | **Stagnation detection** | Track repeated failures across consecutive sessions on the same task (3+ identical failure patterns). Surface as a quality signal. | Medium |
 
 ### Never
@@ -183,7 +183,7 @@ The stop hook variant (re-injecting the prompt within the same session) works ag
 | Action | Why Not |
 |--------|---------|
 | **Infinite loop mode** | No convergence guarantee, no cost control, no structured evaluation. Every argument against Ralph's limitations applies. |
-| **Stop hook integration** | Prevents context rotation. Works against the harness's core mechanism. |
+| **Stop hook integration** | Prevents context rotation. Works against Rein's core mechanism. |
 | **Unmonitored autonomous execution** | The "run overnight" pattern without real-time monitoring and cost caps is irresponsible for any system handling real codebases. |
 
 ---
@@ -200,9 +200,9 @@ The Ralph Loop and RLM address the same problem (context rot) from different dir
 | Cost profile | Linear (N iterations × fixed cost) | Heavy-tail (sub-calls vary 3-5x) |
 | Maturity | Viral adoption, no formal eval | Academic papers, no production deployment |
 
-Both validate the harness's core assumption: context rotation beats context accumulation. Both have unresolved reliability problems. The harness's formal monitoring and evaluation framework is the production answer to what both Ralph and RLM attempt informally.
+Both validate Rein's core assumption: context rotation beats context accumulation. Both have unresolved reliability problems. Rein's formal monitoring and evaluation framework is the production answer to what both Ralph and RLM attempt informally.
 
-The observation masking recommendation from the RLM deep dive is also validated by Ralph: dropping prior tool outputs (which Ralph achieves by restarting the process entirely) preserves quality. The harness should pursue observation masking for in-session optimization — it achieves Ralph's benefit without Ralph's cost of discarding the entire session.
+The observation masking recommendation from the RLM deep dive is also validated by Ralph: dropping prior tool outputs (which Ralph achieves by restarting the process entirely) preserves quality. Rein should pursue observation masking for in-session optimization — it achieves Ralph's benefit without Ralph's cost of discarding the entire session.
 
 ---
 
@@ -228,14 +228,14 @@ The observation masking recommendation from the RLM deep dive is also validated 
 - github.com/Th0rgal/open-ralph-wiggum — Multi-agent support
 - github.com/frankbria/ralph-claude-code — Claude Code integration
 
-### Harness Design Documents
+### Rein Design Documents
 - ARCHITECTURE.md, TOKENS.md, SESSIONS.md, BRIEF.md
 - research/02_context_degradation_research.md
 - research/rlm_deep_dive/00_synthesis.md
 
 ### Deep Dive Documents
 - [01 Core Mechanism](01_core_mechanism.md)
-- [02 Harness Comparison](02_harness_comparison.md)
+- [02 Rein Comparison](02_harness_comparison.md)
 - [03 Validated Patterns](03_validated_patterns.md)
 - [04 Failure Modes](04_failure_modes.md)
 - [05 Ecosystem](05_ecosystem.md)

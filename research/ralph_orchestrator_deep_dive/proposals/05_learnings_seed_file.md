@@ -91,11 +91,11 @@ For single-session tasks, LEARNINGS.md is just a seed file — set it in `files`
 }
 ```
 
-For multi-session workflows, the harness carries forward LEARNINGS.md from the prior session's sandbox into the next session's `files`. This is a workflow-level concern, not a task-level concern — the harness reads LEARNINGS.md from the completed sandbox and injects it into the next task's seed files.
+For multi-session workflows, rein carries forward LEARNINGS.md from the prior session's sandbox into the next session's `files`. This is a workflow-level concern, not a task-level concern — rein reads LEARNINGS.md from the completed sandbox and injects it into the next task's seed files.
 
 #### Size Management
 
-LEARNINGS.md should remain concise — one line per fact, no prose. If it grows beyond ~50 lines, the operator should curate it between sessions. Unlike ralph-orchestrator's scratchpad (16K character cap with FIFO eviction), the harness does not enforce an automatic size limit. The operator controls what persists.
+LEARNINGS.md should remain concise — one line per fact, no prose. If it grows beyond ~50 lines, the operator should curate it between sessions. Unlike ralph-orchestrator's scratchpad (16K character cap with FIFO eviction), rein does not enforce an automatic size limit. The operator controls what persists.
 
 ---
 
@@ -111,7 +111,7 @@ Ralph-orchestrator's scratchpad (`scratchpad.rs`) serves a similar purpose: it p
 | Persistence | Across iterations (same loop) | Across sessions (different loops) |
 | Control | Automatic eviction | Operator curation |
 
-The harness already has seed files (`files` in TaskDefinition) for carrying forward code artifacts. LEARNINGS.md is a formalized convention for a specific kind of seed content: **knowledge about the codebase**, not code itself. The distinction matters because:
+Rein already has seed files (`files` in TaskDefinition) for carrying forward code artifacts. LEARNINGS.md is a formalized convention for a specific kind of seed content: **knowledge about the codebase**, not code itself. The distinction matters because:
 
 1. **Knowledge compounds.** Each session adds facts. Code artifacts from session 1 may be irrelevant to session 3, but "the test runner needs `--test-threads=1`" is always useful.
 

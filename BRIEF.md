@@ -1,12 +1,12 @@
-# Agentic Harness — Project Brief
+# Rein — Project Brief
 
 ## What It Is
 
-The agentic harness is a **context-pressure-aware orchestrator** for AI coding agents. It monitors how agents consume their context windows during real development work, intervenes when quality is at risk, and ensures work is persisted before degradation sets in.
+Rein is a **context-pressure-aware orchestrator** for AI coding agents. It monitors how agents consume their context windows during real development work, intervenes when quality is at risk, and ensures work is persisted before degradation sets in.
 
 It sits above agents as a controller layer — dispatching tasks, isolating execution, monitoring context pressure in real-time, and managing graceful wrap-up when pressure thresholds are crossed.
 
-This is not a benchmarking or comparison tool. It is used during actual development work.
+Its purpose is context-pressure-aware orchestration during real development work. Structured, normalized reporting makes cross-agent comparison a natural capability — but comparison is a byproduct, not the goal.
 
 ## Who It's For
 
@@ -22,7 +22,7 @@ AI coding agents are powerful but unmanaged. During a long session:
 - **No structured evaluation** — success is eyeballed, not measured.
 - **No cost visibility** — token usage and spend are buried in agent-specific formats.
 
-The harness solves this by treating **context pressure** as the primary operational metric. You break work into discrete tasks sized to fit within safe context bounds, dispatch each to an agent in a sandbox, monitor context pressure in real-time via token streams, and intervene when pressure crosses configurable thresholds — ensuring work is committed and progress is logged before quality degrades.
+Rein solves this by treating **context pressure** as the primary operational metric. You break work into discrete tasks sized to fit within safe context bounds, dispatch each to an agent in a sandbox, monitor context pressure in real-time via token streams, and intervene when pressure crosses configurable thresholds — ensuring work is committed and progress is logged before quality degrades.
 
 ## The Five Pillars
 
@@ -36,15 +36,15 @@ The harness solves this by treating **context pressure** as the primary operatio
 
 ## Context Pressure as Core Metric
 
-Context pressure — the ratio of consumed tokens to the model's context window — is the harness's primary operational metric. It drives all intervention decisions.
+Context pressure — the ratio of consumed tokens to the model's context window — is Rein's primary operational metric. It drives all intervention decisions.
 
-The harness monitors token consumption in real-time (via agent NDJSON/JSONL streams where available) and classifies pressure into configurable zones:
+Rein monitors token consumption in real-time (via agent NDJSON/JSONL streams where available) and classifies pressure into configurable zones:
 
-| Zone | Default | Harness Action |
+| Zone | Default | Rein Action |
 |---|---|---|
 | **Green** | 0–60% of context window | Continue execution |
-| **Yellow** | 60–80% of context window | Graceful stop: wait for current turn, kill subprocess, harness commits and logs |
-| **Red** | >80% of context window | Immediate kill: harness wraps up with partial data |
+| **Yellow** | 60–80% of context window | Graceful stop: wait for current turn, kill subprocess, Rein commits and logs |
+| **Red** | >80% of context window | Immediate kill: Rein wraps up with partial data |
 
 Zone thresholds are configurable globally and per-model — when models have large context windows but quality degrades early, shrink the effective ceiling. See [TOKENS.md](TOKENS.md) for data structures and [SESSIONS.md](SESSIONS.md) for the full monitoring protocol.
 
@@ -54,7 +54,7 @@ The token budget (default 70,000 tokens) is a complementary cost/resource constr
 
 ## Scope
 
-### MVP: Single-Agent Workflow
+### Current: Single-Agent Workflow
 
 The first version supports dispatching one task to one agent at a time. The flow is:
 
@@ -65,21 +65,21 @@ The first version supports dispatching one task to one agent at a time. The flow
 5. Run validation commands
 6. Generate structured report
 
-### Future: Multi-Agent & YAML Support
+### Planned: Multi-Agent & YAML Support
 
 Multi-agent support is planned for **workflow composition** — using different agents and models for different roles. For example: plan with Claude/Opus at high effort, implement with Gemini/Flash at medium effort, review with Claude/Sonnet. Each task targets a single agent.
 
 - **Parallelism** — dispatch different tasks to different agents concurrently
 
-The architecture supports this from day one (agent adapter protocol, normalized token model, per-task agent/model/effort fields) but the MVP does not implement parallel dispatch.
+The architecture supports this from day one (agent adapter protocol, normalized token model, per-task agent/model/effort fields) but parallel dispatch is not yet implemented. See [ROADMAP.md](ROADMAP.md) for release planning.
 
 YAML task loading is a planned future addition. YAML's multiline block scalars, comments, and token efficiency make it attractive for human-authored task files. The `TaskDefinition` dataclass is format-agnostic — adding YAML support requires only a loader that detects file extension.
 
 ## Why Not the Anthropic Agent SDK?
 
-The Anthropic Agent SDK is for *building* agents powered by Claude. The agentic harness is for *controlling* existing CLI agents.
+The Anthropic Agent SDK is for *building* agents powered by Claude. Rein is for *controlling* existing CLI agents.
 
-| Dimension | Anthropic Agent SDK | Agentic Harness |
+| Dimension | Anthropic Agent SDK | Rein |
 |---|---|---|
 | Scope | Build agents powered by Claude | Orchestrate existing CLI agents |
 | Model support | Claude only | Model-agnostic |

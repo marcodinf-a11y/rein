@@ -147,7 +147,7 @@ Goose maintains both a CLI and an Electron desktop app. This dual-target approac
 - **Auto-update friction**: Issue [#4322](https://github.com/block/goose/issues/4322) (15 comments) requests automatic update installation, suggesting the current update experience is manual and friction-heavy.
 - **A TUI is also in progress**: Issue [#5831](https://github.com/block/goose/issues/5831) (25 comments) proposes a terminal UI, adding a *third* interface to maintain.
 
-**Counter-argument**: The desktop app makes Goose accessible to developers who are not comfortable with CLI tools. Block likely sees this as essential for internal adoption at scale. However, for the harness project, only the CLI matters.
+**Counter-argument**: The desktop app makes Goose accessible to developers who are not comfortable with CLI tools. Block likely sees this as essential for internal adoption at scale. However, for the rein project, only the CLI matters.
 
 ---
 
@@ -250,24 +250,24 @@ Goose's genuine advantages are:
 
 ---
 
-## 12. Honest Assessment for the Harness Project
+## 12. Honest Assessment for the Rein Project
 
 ### Specific Risks of Supporting Goose as a Target Agent
 
-1. **Unreliable exit codes**: The harness needs to detect success/failure. Goose's exit code behavior is inconsistent.
+1. **Unreliable exit codes**: Rein needs to detect success/failure. Goose's exit code behavior is inconsistent.
 2. **Output parsing complexity**: Goose outputs a mix of tool calls, thinking, user-facing text, and status information. Extracting structured results requires robust parsing.
-3. **Session management**: Goose sessions have state (context window, compaction history). The harness must decide whether to reuse or create sessions.
-4. **Fast-moving target**: With 2 releases/week and no API stability guarantee, the harness integration may break frequently.
-5. **The benchmark problem**: If Goose genuinely produces 5.2% accuracy on coding tasks, wrapping it in a harness will not fix the underlying quality issue. The harness would be wrapping an underperforming agent.
-6. **MCP extension dependencies**: The harness may need to manage MCP extension lifecycle (startup, health checking, shutdown) alongside the Goose process itself.
+3. **Session management**: Goose sessions have state (context window, compaction history). Rein must decide whether to reuse or create sessions.
+4. **Fast-moving target**: With 2 releases/week and no API stability guarantee, the rein integration may break frequently.
+5. **The benchmark problem**: If Goose genuinely produces 5.2% accuracy on coding tasks, wrapping it in rein will not fix the underlying quality issue. Rein would be wrapping an underperforming agent.
+6. **MCP extension dependencies**: Rein may need to manage MCP extension lifecycle (startup, health checking, shutdown) alongside the Goose process itself.
 
 ### Specific Benefits of Supporting Goose
 
-1. **Model-agnostic comparison**: Goose lets the harness test the same task across multiple LLM providers, isolating model quality from agent quality.
+1. **Model-agnostic comparison**: Goose lets rein test the same task across multiple LLM providers, isolating model quality from agent quality.
 2. **CLI-first design**: Despite the desktop app, Goose's CLI is a first-class citizen with headless mode and structured output options.
-3. **Recipe-driven automation**: Recipes can encode repeatable task specifications, which aligns well with harness-driven evaluation.
+3. **Recipe-driven automation**: Recipes can encode repeatable task specifications, which aligns well with rein-driven evaluation.
 4. **Active development**: With 350+ contributors and Block's backing, Goose is likely to continue improving.
-5. **Open source**: Full source access means the harness can inspect and adapt to any behavioral changes.
+5. **Open source**: Full source access means rein can inspect and adapt to any behavioral changes.
 6. **HTTP API**: The `goosed` daemon exposes HTTP/SSE endpoints, offering a programmatic interface beyond CLI wrapping.
 
 ### Recommendation
@@ -279,7 +279,7 @@ Support Goose as a target agent, but with clear-eyed expectations:
 - **Pin to specific versions** and test after upgrades. Budget for breakage.
 - **Consider Goose's value as a "second opinion" agent** rather than a primary coding agent. Its model flexibility makes it useful for cross-model validation even if its harness reduces quality versus more focused tools.
 - **Monitor the benchmark gap.** If Goose's orchestration improves to bring accuracy closer to the underlying model's capability, it becomes much more compelling. The 5.2% score may reflect a bad configuration or benchmark setup, but until independently verified, it is a red flag.
-- **Prefer the HTTP API over CLI wrapping** for the harness integration. The `goosed` daemon's HTTP/SSE endpoints are more structured and less fragile than parsing CLI output.
+- **Prefer the HTTP API over CLI wrapping** for the rein integration. The `goosed` daemon's HTTP/SSE endpoints are more structured and less fragile than parsing CLI output.
 
 ---
 

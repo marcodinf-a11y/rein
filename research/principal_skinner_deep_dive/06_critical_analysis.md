@@ -36,13 +36,13 @@ None.
 
 The blog posts cite OWASP categories (ASI02, ASI08, ASI10) as motivation, which is valid — these are real threat categories. But citing the problem is not evidence that the proposed solution works. OWASP identifies risks; Principal Skinner proposes mitigations; no one has tested whether those mitigations are effective.
 
-Compare to the harness's evidence base: also limited, but the harness's controls (subprocess isolation, sandbox containment, token budgets) rely on well-understood OS-level mechanisms (process signals, filesystem isolation, worktrees) with decades of production use. Principal Skinner's controls (behavioral pattern detection, adversarial trajectory simulation) rely on mechanisms that have no established effectiveness for agent supervision.
+Compare to Rein's evidence base: also limited, but Rein's controls (subprocess isolation, sandbox containment, token budgets) rely on well-understood OS-level mechanisms (process signals, filesystem isolation, worktrees) with decades of production use. Principal Skinner's controls (behavioral pattern detection, adversarial trajectory simulation) rely on mechanisms that have no established effectiveness for agent supervision.
 
 ---
 
 ## 3. Does It Over-Engineer the Safety Problem?
 
-For the target user of the agentic harness (solo developer, local development, task-scoped work): **yes, dramatically.**
+For the target user of rein (solo developer, local development, task-scoped work): **yes, dramatically.**
 
 Consider the full Principal Skinner stack:
 1. Custom tool-use interception layer
@@ -73,38 +73,38 @@ Every safety control reduces agent autonomy. The question is whether the reducti
 
 | Control | Autonomy Cost | Safety Benefit | Proportionate? |
 |---------|--------------|---------------|----------------|
-| Sandbox isolation (harness) | Low — agent works normally within sandbox | High — blast radius contained | Yes |
-| Token budget (harness) | Low — most tasks complete within budget | High — prevents runaway cost | Yes |
-| Zone kills (harness) | Medium — may terminate productive work | High — prevents context degradation | Yes |
-| Quality gate (harness) | None during execution — post-hoc evaluation | High — catches bad output | Yes |
+| Sandbox isolation (rein) | Low — agent works normally within sandbox | High — blast radius contained | Yes |
+| Token budget (rein) | Low — most tasks complete within budget | High — prevents runaway cost | Yes |
+| Zone kills (rein) | Medium — may terminate productive work | High — prevents context degradation | Yes |
+| Quality gate (rein) | None during execution — post-hoc evaluation | High — catches bad output | Yes |
 | Tool-use interception (Skinner) | High — every tool call evaluated, false positives block work | Medium — prevents specific dangerous commands | Depends on use case |
 | Behavioral circuit breakers (Skinner) | Unknown — no implementation to measure | Unknown — no effectiveness data | Cannot evaluate |
 | Adversarial simulation (Skinner) | High — $100s-$1000s and hours per task before any work begins | Unknown — no data on predictive accuracy | Cannot evaluate |
-| Per-agent SSH keys (Skinner) | Medium — provisioning overhead per session | Low for local dev — git author config suffices | No, for harness's use case |
+| Per-agent SSH keys (Skinner) | Medium — provisioning overhead per session | Low for local dev — git author config suffices | No, for Rein's use case |
 
-The harness's controls cluster in the "low autonomy cost, high safety benefit" quadrant. Principal Skinner's controls cluster in "high/unknown autonomy cost, unknown safety benefit." This is not because Principal Skinner's ideas are bad — it is because they are unevaluated. Without effectiveness data, the cost-benefit ratio cannot be assessed.
+Rein's controls cluster in the "low autonomy cost, high safety benefit" quadrant. Principal Skinner's controls cluster in "high/unknown autonomy cost, unknown safety benefit." This is not because Principal Skinner's ideas are bad — it is because they are unevaluated. Without effectiveness data, the cost-benefit ratio cannot be assessed.
 
 ---
 
-## 5. What the Harness Does Better
+## 5. What Rein Does Better
 
 ### 5.1 Containment Over Interception
 
-The harness's sandbox model is architecturally simpler and harder to circumvent than signature-based interception. An agent in a worktree cannot affect the main tree regardless of what commands it runs. There is no allowlist to evade, no pattern to circumvent, no policy to find gaps in. The containment boundary is the filesystem, enforced by the OS.
+Rein's sandbox model is architecturally simpler and harder to circumvent than signature-based interception. An agent in a worktree cannot affect the main tree regardless of what commands it runs. There is no allowlist to evade, no pattern to circumvent, no policy to find gaps in. The containment boundary is the filesystem, enforced by the OS.
 
-Interception (Principal Skinner's approach) requires anticipating every dangerous action and writing a rule for it. This is the antivirus problem: an arms race between increasingly creative attacks and increasingly complex signatures. Containment (the harness's approach) sidesteps the arms race by making the agent's environment disposable.
+Interception (Principal Skinner's approach) requires anticipating every dangerous action and writing a rule for it. This is the antivirus problem: an arms race between increasingly creative attacks and increasingly complex signatures. Containment (Rein's approach) sidesteps the arms race by making the agent's environment disposable.
 
 ### 5.2 Post-Execution Evaluation
 
-The harness's quality gate evaluates *outcomes*, not *actions*. This is fundamentally more robust than action-level policing. An agent that reaches the right answer through an unexpected path passes the quality gate. An agent that follows all the rules but produces wrong output fails. Principal Skinner can only evaluate actions in isolation — it cannot assess whether the overall trajectory produces a correct result.
+Rein's quality gate evaluates *outcomes*, not *actions*. This is fundamentally more robust than action-level policing. An agent that reaches the right answer through an unexpected path passes the quality gate. An agent that follows all the rules but produces wrong output fails. Principal Skinner can only evaluate actions in isolation — it cannot assess whether the overall trajectory produces a correct result.
 
 ### 5.3 Adversarial Review Without Simulation
 
-The harness's review agent provides adversarial evaluation of every task output — a separate model invocation with no loyalty to the implementation agent. This achieves the adversarial perspective that Principal Skinner's simulation proposes, but at the cost of a single review session (~$0.50-2) rather than thousands of simulated trajectories ($100s-$1000s).
+Rein's review agent provides adversarial evaluation of every task output — a separate model invocation with no loyalty to the implementation agent. This achieves the adversarial perspective that Principal Skinner's simulation proposes, but at the cost of a single review session (~$0.50-2) rather than thousands of simulated trajectories ($100s-$1000s).
 
 ### 5.4 Real-Time Resource Monitoring
 
-The harness monitors context pressure in real time and intervenes at thresholds. Principal Skinner proposes behavioral monitoring but has no implementation. The harness's monitor is shipped, tested, and operational. A working resource monitor is worth more than a proposed behavioral monitor.
+Rein monitors context pressure in real time and intervenes at thresholds. Principal Skinner proposes behavioral monitoring but has no implementation. Rein's monitor is shipped, tested, and operational. A working resource monitor is worth more than a proposed behavioral monitor.
 
 ---
 
@@ -112,33 +112,33 @@ The harness monitors context pressure in real time and intervenes at thresholds.
 
 ### 6.1 Pre-Execution Prevention
 
-The harness cannot prevent a dangerous action — only contain its blast radius and evaluate its output. If an agent within a sandbox exfiltrates data over the network, the sandbox does not prevent this (worktrees and tempdir copies provide filesystem isolation, not network isolation). Principal Skinner's tool-use interception could block network calls entirely.
+Rein cannot prevent a dangerous action — only contain its blast radius and evaluate its output. If an agent within a sandbox exfiltrates data over the network, the sandbox does not prevent this (worktrees and tempdir copies provide filesystem isolation, not network isolation). Principal Skinner's tool-use interception could block network calls entirely.
 
-This is a real gap for agents with network access. The harness's existing sandboxing research (06_agent_sandboxing_isolation.md) identifies Firecracker microVMs and gVisor as solutions for process/network isolation, but these are not yet implemented.
+This is a real gap for agents with network access. Rein's existing sandboxing research (06_agent_sandboxing_isolation.md) identifies Firecracker microVMs and gVisor as solutions for process/network isolation, but these are not yet implemented.
 
 ### 6.2 Threat Taxonomy
 
-Principal Skinner's alignment with OWASP Agentic Top 10 provides a structured vocabulary for discussing agent safety risks. The harness has no equivalent mapping. Even if the harness's controls already cover most OWASP categories, documenting this mapping would strengthen the safety argument and identify blind spots.
+Principal Skinner's alignment with OWASP Agentic Top 10 provides a structured vocabulary for discussing agent safety risks. Rein has no equivalent mapping. Even if Rein's controls already cover most OWASP categories, documenting this mapping would strengthen the safety argument and identify blind spots.
 
 ### 6.3 Multi-Agent Safety
 
-For systems running multiple agents that interact with each other or shared resources, Principal Skinner's identity and audit infrastructure becomes more valuable. The harness currently runs one agent per task. When multi-agent parallel execution is implemented, per-agent identity and cross-agent behavioral monitoring will matter more.
+For systems running multiple agents that interact with each other or shared resources, Principal Skinner's identity and audit infrastructure becomes more valuable. Rein currently runs one agent per task. When multi-agent parallel execution is implemented, per-agent identity and cross-agent behavioral monitoring will matter more.
 
 ---
 
 ## 7. Gaps in Both Systems
 
-| Gap | Principal Skinner | Harness | Notes |
+| Gap | Principal Skinner | Rein | Notes |
 |-----|------------------|---------|-------|
 | Cross-session behavioral analysis | Not addressed | Not addressed | Neither tracks behavioral patterns across sessions/tasks |
 | Agent capability degradation | Not addressed | Not addressed | Neither detects when an agent's output quality declines over time |
 | Formal verification of safety | Claims "provable control" but provides no formal proof | No claims of formal verification | "Provable" is used loosely in the blog posts — no formal methods are applied |
-| Network isolation | Proposed via tool-use interception | Not implemented (worktrees are filesystem-only) | Both have a gap here; the harness's sandboxing research identifies solutions |
+| Network isolation | Proposed via tool-use interception | Not implemented (worktrees are filesystem-only) | Both have a gap here; Rein's sandboxing research identifies solutions |
 | Supply chain attacks | Not addressed | Not addressed | Neither considers compromised tools, packages, or dependencies the agent installs |
 | Prompt injection from codebase | Not addressed | Partially addressed (sandbox limits scope, review agent provides second opinion) | An agent reading a malicious file in the repo could be influenced — neither system fully mitigates this |
 | Model-level alignment | Acknowledged but deferred ("deterministic controls override model behavior") | Acknowledged but deferred (review agent provides partial mitigation) | Both correctly identify this as out-of-scope for orchestration-level controls |
 
-The most significant shared gap is **network isolation**. Both systems assume filesystem containment is sufficient. For agents that can make HTTP requests, install packages, or access cloud APIs, filesystem isolation is necessary but not sufficient. The harness's sandboxing research identifies Firecracker microVMs as the solution (<125ms boot, <5MiB RAM overhead). Principal Skinner proposes tool-use interception of network calls, which is weaker (circumventable) but cheaper to implement.
+The most significant shared gap is **network isolation**. Both systems assume filesystem containment is sufficient. For agents that can make HTTP requests, install packages, or access cloud APIs, filesystem isolation is necessary but not sufficient. Rein's sandboxing research identifies Firecracker microVMs as the solution (<125ms boot, <5MiB RAM overhead). Principal Skinner proposes tool-use interception of network calls, which is weaker (circumventable) but cheaper to implement.
 
 ---
 
@@ -150,9 +150,9 @@ The "Anthropic Attack" article proposes a phased deployment lifecycle:
 2. **Walk (Identity & Observability):** Deploy with full audit trails
 3. **Run (Enforcement):** Real-time policy enforcement
 
-This is sound project management advice repackaged as a safety methodology. The harness already operates at "Walk" level — agents have tracked identities (in reports), execution is observable (structured logs, token accounting), and outputs are evaluated (quality gate). The "Crawl" phase (pre-deployment simulation) is cost-prohibitive for the harness's use case. The "Run" phase (real-time policy enforcement) is Sondera, which has known limitations.
+This is sound project management advice repackaged as a safety methodology. Rein already operates at "Walk" level — agents have tracked identities (in reports), execution is observable (structured logs, token accounting), and outputs are evaluated (quality gate). The "Crawl" phase (pre-deployment simulation) is cost-prohibitive for Rein's use case. The "Run" phase (real-time policy enforcement) is Sondera, which has known limitations.
 
-The lifecycle's value is as a maturity model for teams scaling agent deployment. For the harness's current scope, it confirms that the harness is already at an appropriate maturity level.
+The lifecycle's value is as a maturity model for teams scaling agent deployment. For Rein's current scope, it confirms that rein is already at an appropriate maturity level.
 
 ---
 
@@ -162,9 +162,9 @@ Principal Skinner correctly identifies that unsupervised agent loops need infras
 
 But it is a **proposal without evidence**, and the one implemented component (Sondera) uses a technique (signature-based pattern matching) with well-known limitations. The blog posts use "provable" without formal proofs, claim "deterministic" safety while relying on circumventable pattern matching, and prescribe enterprise-grade controls for all use cases regardless of risk profile.
 
-The harness achieves equivalent or superior safety for its target use case through simpler mechanisms: sandbox containment, process isolation, resource monitoring, structured evaluation, and adversarial review. The cost-benefit ratio of the harness's approach (low implementation cost, high containment effectiveness) is demonstrably better than Principal Skinner's approach (high implementation cost, unknown effectiveness) for solo/small-team, local development workflows.
+Rein achieves equivalent or superior safety for its target use case through simpler mechanisms: sandbox containment, process isolation, resource monitoring, structured evaluation, and adversarial review. The cost-benefit ratio of Rein's approach (low implementation cost, high containment effectiveness) is demonstrably better than Principal Skinner's approach (high implementation cost, unknown effectiveness) for solo/small-team, local development workflows.
 
-Where Principal Skinner adds genuine value is in *vocabulary* (OWASP mapping), *aspiration* (the four-mechanism framework as a north star for enterprise agent safety), and *specific gap identification* (action-content analysis, pre-execution prevention). The harness should adopt the vocabulary, note the aspiration, close the specific gaps incrementally, and avoid the implementation overhead.
+Where Principal Skinner adds genuine value is in *vocabulary* (OWASP mapping), *aspiration* (the four-mechanism framework as a north star for enterprise agent safety), and *specific gap identification* (action-content analysis, pre-execution prevention). Rein should adopt the vocabulary, note the aspiration, close the specific gaps incrementally, and avoid the implementation overhead.
 
 ---
 
@@ -174,7 +174,7 @@ Where Principal Skinner adds genuine value is in *vocabulary* (OWASP mapping), *
 - "The Anthropic Attack." securetrajectories.substack.com, 2026.
 - OpenClaw/Sondera. Cedar-based policy-as-code for agent tool control.
 - OWASP. "Top 10 for Agentic Applications 2026." owasp.org, 2026.
-- Agentic Harness: ARCHITECTURE.md, TOKENS.md, SESSIONS.md, BRIEF.md
+- Rein: ARCHITECTURE.md, TOKENS.md, SESSIONS.md, BRIEF.md
 - research/06_agent_sandboxing_isolation.md
 - research/ralph_wiggum_deep_dive/00_synthesis.md
 - research/ralph_wiggum_deep_dive/04_failure_modes.md

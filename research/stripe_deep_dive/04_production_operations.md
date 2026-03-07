@@ -302,11 +302,11 @@ This document analyzes the operational reality of Stripe running 1,000+ agent-pr
 9. **Monitoring/observability details** — dashboards, alerts, quality metrics.
 10. **Long-term code quality impact** — defect rates, technical debt from agent code.
 
-### Critical Operational Questions for Harness Design
+### Critical Operational Questions for Rein Design
 
-1. **The 2-round limit is a key design pattern.** It prevents compute waste and acknowledges LLM limitations. This should be adopted as a configurable parameter in the harness.
+1. **The 2-round limit is a key design pattern.** It prevents compute waste and acknowledges LLM limitations. This should be adopted as a configurable parameter in rein.
 2. **Deterministic/agentic interleaving is essential for cost control.** Having the LLM handle only the parts that require judgment, while deterministic code handles git, lint, and CI, is a proven pattern for reducing both cost and error rates.
-3. **Tool curation matters more than tool quantity.** 400+ tools exist, but agents see ~15 per task. The harness should support dynamic tool filtering based on task type.
+3. **Tool curation matters more than tool quantity.** 400+ tools exist, but agents see ~15 per task. Rein should support dynamic tool filtering based on task type.
 4. **Pre-warmed execution environments are critical for latency.** The 10-second spin-up time is only possible with pre-warmed VMs. Cold-starting containers would add minutes.
 5. **Human review at this scale requires templated, CI-passing PRs.** If agent PRs don't follow templates or fail CI, the review burden becomes unsustainable.
 

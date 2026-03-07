@@ -45,7 +45,7 @@ Goose (Block, Apache 2.0, Rust core) and Claude Code (Anthropic, proprietary age
 
 ### Key Architectural Differences
 
-**Agent Loop:** Goose's loop delegates execution entirely to MCP servers -- the agent core never directly touches the file system or runs shell commands. Instead, built-in extensions like the Developer extension and System Shell extension are themselves MCP servers. Claude Code's loop directly invokes built-in tools (Read, Write, Bash, etc.) as first-class capabilities within the harness.
+**Agent Loop:** Goose's loop delegates execution entirely to MCP servers -- the agent core never directly touches the file system or runs shell commands. Instead, built-in extensions like the Developer extension and System Shell extension are themselves MCP servers. Claude Code's loop directly invokes built-in tools (Read, Write, Bash, etc.) as first-class capabilities within the agent loop.
 
 **Context Strategy:** Claude Code's auto-compaction with subagent context isolation is more sophisticated for long-running sessions. Goose's context revision is simpler but benefits from the MCP architecture where each extension manages its own state.
 
@@ -236,9 +236,9 @@ What Goose does that no competitor matches:
 
 Where competitors clearly outperform Goose:
 
-1. **Reasoning Quality (vs Claude Code).** Claude Code's multi-step reasoning remains the strongest in the category. Users consistently report Claude Code navigating complex call stacks across multiple files, identifying root causes, and deploying fixes autonomously -- with zero context provided. Goose's reasoning quality is entirely dependent on the underlying model chosen, and no model matches Claude's coding-specific optimization when used through Claude Code's tightly integrated harness.
+1. **Reasoning Quality (vs Claude Code).** Claude Code's multi-step reasoning remains the strongest in the category. Users consistently report Claude Code navigating complex call stacks across multiple files, identifying root causes, and deploying fixes autonomously -- with zero context provided. Goose's reasoning quality is entirely dependent on the underlying model chosen, and no model matches Claude's coding-specific optimization when used through Claude Code's tightly integrated agent harness.
 
-2. **Sandboxing Maturity (vs Codex CLI).** Codex CLI's multi-layered sandbox (default-deny network, workspace-scoped writes, environment sanitization) is the gold standard. Goose's sandbox is macOS-Desktop-only (v1.25.0+) and offers no OS-level isolation on Linux, which is the primary CI/CD target platform. This is a critical gap for the harness use case.
+2. **Sandboxing Maturity (vs Codex CLI).** Codex CLI's multi-layered sandbox (default-deny network, workspace-scoped writes, environment sanitization) is the gold standard. Goose's sandbox is macOS-Desktop-only (v1.25.0+) and offers no OS-level isolation on Linux, which is the primary CI/CD target platform. This is a critical gap for the rein use case.
 
 3. **Git Integration (vs Aider).** Aider's automatic commits, repo-map with graph-ranked context selection, and tree-sitter-based codebase understanding are significantly more sophisticated than Goose's approach. For pure code editing workflows, Aider provides cleaner history and better codebase awareness.
 
@@ -258,7 +258,7 @@ Where competitors clearly outperform Goose:
 
 ## 9. CI/CD and Programmatic Use Suitability
 
-This section evaluates each agent's fitness for unattended, automated execution -- the core harness use case.
+This section evaluates each agent's fitness for unattended, automated execution -- the core rein use case.
 
 ### Feature Comparison Matrix
 
@@ -274,9 +274,9 @@ This section evaluates each agent's fitness for unattended, automated execution 
 | **Error Handling** | Agent retries with strategy adjustment | Exit codes; error in output | Exit codes | Not documented | Limited | N/A | AWS error handling |
 | **Multi-Repo** | Via recipes and extensions | Subagents with directory scoping | Single workspace | Single workspace | Single repo | N/A | Single repo + AWS integration |
 
-### CI/CD Suitability Ranking (for harness use case)
+### CI/CD Suitability Ranking (for rein use case)
 
-1. **Claude Code** -- Best combination of headless mode maturity, output format flexibility (JSON streaming), tool restriction (`--allowedTools`), turn limits, and proven CI adoption (92% of CI users choose GitHub Actions). The `-p` flag with `--output-format json` provides structured, parseable output ideal for harness integration.
+1. **Claude Code** -- Best combination of headless mode maturity, output format flexibility (JSON streaming), tool restriction (`--allowedTools`), turn limits, and proven CI adoption (92% of CI users choose GitHub Actions). The `-p` flag with `--output-format json` provides structured, parseable output ideal for rein integration.
 
 2. **Codex CLI** -- Best sandboxing for CI (default-deny network, workspace-scoped writes). `codex exec` is purpose-built for automation. The Rust binary starts in milliseconds. Weakness: provider lock-in to OpenAI limits model flexibility.
 

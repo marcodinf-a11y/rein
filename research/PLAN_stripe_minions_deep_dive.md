@@ -2,7 +2,7 @@
 
 ## Objective
 
-Produce a comprehensive, source-verified analysis of Stripe's Minions agentic CI/CD system. Extract actionable architecture patterns, operational constraints, and failure modes relevant to the agentic harness quality gate and pipeline design.
+Produce a comprehensive, source-verified analysis of Stripe's Minions agentic CI/CD system. Extract actionable architecture patterns, operational constraints, and failure modes relevant to the rein quality gate and pipeline design.
 
 This is not a summary of the blog posts — the surface-level coverage already exists in `research/12_production_agent_deployments.md`. This deep-dive aims to extract what the blog posts imply but don't say explicitly, cross-reference with external sources, and stress-test our assumptions about the Blueprint pattern.
 
@@ -210,7 +210,7 @@ A final synthesis pass (main process, not a separate agent) reads all 7 document
 
 1. **`research/stripe_deep_dive/00_synthesis.md`** — consolidated findings, cross-references between agents, resolved contradictions
 2. Updates to `QUALITY_GATE.md` — any design changes warranted by the deep-dive findings
-3. Updates to `BRIEF.md` — if the deep-dive reveals patterns that should influence the harness's core design
+3. Updates to `BRIEF.md` — if the deep-dive reveals patterns that should influence Rein's core design
 
 ### Output Structure
 
@@ -230,4 +230,4 @@ research/stripe_deep_dive/
 
 - **Sources**: Only official Stripe engineering blog posts, conference talks by Stripe engineers, Goose/Block official documentation, peer-reviewed research, and established industry reports. No speculation blogs, no unverified social media claims.
 - **Time range**: Focus on August 2025 through March 2026, with Goose history going back further as needed for lineage.
-- **Scope**: This is about understanding Stripe's system deeply enough to validate and improve the harness design. Not about replicating Stripe's internal infrastructure.
+- **Scope**: This is about understanding Stripe's system deeply enough to validate and improve rein design. Not about replicating Stripe's internal infrastructure.

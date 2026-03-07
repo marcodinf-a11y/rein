@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document consolidates findings from seven research agents who independently analyzed Stripe's Minions agentic CI/CD system. It cross-references their conclusions, resolves contradictions, and extracts actionable design implications for the agentic harness.
+This document consolidates findings from seven research agents who independently analyzed Stripe's Minions agentic CI/CD system. It cross-references their conclusions, resolves contradictions, and extracts actionable design implications for rein.
 
 For the detailed analysis, see the individual reports:
 - [01 Blueprint Pattern](01_blueprint_pattern.md) — Orchestration architecture
@@ -50,37 +50,37 @@ These findings are confirmed across multiple agents and primary sources:
 
 Agents 1 and 4 independently conclude the same execution model: a **sequential pipeline with bounded retry loops**, not a graph. Intra-task execution is single-threaded; parallelism exists only at the inter-task level (many devboxes running concurrently).
 
-**Implication for harness:** The harness's round mechanism (round 1 → quality gate → round 2) is architecturally aligned with Stripe's Blueprint model. No DAG scheduler is needed.
+**Implication for rein:** Rein's round mechanism (round 1 → quality gate → round 2) is architecturally aligned with Stripe's Blueprint model. No DAG scheduler is needed.
 
 ### 2. Tool Curation Is the Key Context Optimization
 
 Agents 1, 2, and 7 all identify tool curation (~15 from 400+) as Stripe's primary context window strategy. The orchestrator, not the agent, selects tools — this is a deterministic pre-processing step, not an agent decision.
 
-**Implication for harness:** The harness currently delegates tool management to agents. For projects with many MCP tools, a per-task tool filtering mechanism (in `harness.toml` or task definition) would be valuable. Not MVP-critical.
+**Implication for rein:** Rein currently delegates tool management to agents. For projects with many MCP tools, a per-task tool filtering mechanism (in `rein.toml` or task definition) would be valuable. Not MVP-critical.
 
 ### 3. Context Pressure Is Avoided by Architecture, Not Managed at Runtime
 
 Agents 1, 6, and 7 converge on the same explanation for Stripe's silence on context management: the one-shot design with tightly scoped tasks keeps interactions short enough that context pressure never arises. Stripe manages context by *not needing to* — tasks are small, tools are curated, and the 2-round cap prevents unbounded growth.
 
-**Implication for harness:** This validates the harness's context pressure monitoring as addressing a real gap. Teams without Stripe's task-scoping discipline need runtime context management. The harness fills the role that Stripe's architecture makes unnecessary.
+**Implication for rein:** This validates Rein's context pressure monitoring as addressing a real gap. Teams without Stripe's task-scoping discipline need runtime context management. Rein fills the role that Stripe's architecture makes unnecessary.
 
 ### 4. Pre-Hydration Eliminates Agent Discovery Overhead
 
 Agents 1, 2, and 6 independently highlight context pre-hydration: running MCP tools *before* the agent loop to assemble relevant documentation, tickets, and code context. The agent starts its first turn with everything it needs.
 
-**Implication for harness:** The harness's `setup_commands` and `seed_files` in task definitions serve a similar purpose but are less sophisticated. A future enhancement could support pre-hydration steps that run MCP tools to assemble context before the agent starts.
+**Implication for rein:** Rein's `setup_commands` and `seed_files` in task definitions serve a similar purpose but are less sophisticated. A future enhancement could support pre-hydration steps that run MCP tools to assemble context before the agent starts.
 
 ### 5. The 2-Round Limit Is Pragmatic, Not Proven
 
 Agents 4 and 7 both note that Stripe presents the 2-round limit as empirically derived but publishes no supporting data. Agent 7 challenges whether round 2 even adds significant marginal value. However, the heuristic is consistent with broader research on LLM code repair — diminishing returns after 1-2 attempts on the same error.
 
-**Implication for harness:** The default `max_rounds = 2` is well-calibrated. Making it configurable (already the case) is the right approach.
+**Implication for rein:** The default `max_rounds = 2` is well-calibrated. Making it configurable (already the case) is the right approach.
 
 ### 6. Goose Was Chosen for Forkability, Not Capability
 
 Agent 3's analysis reveals that Goose is the only major agent CLI explicitly designed for organizational forking (CUSTOM_DISTROS.md guide, Apache 2.0, REST API server mode, provider agnosticism). Claude Code, Codex CLI, and Gemini CLI are end-user tools not designed for embedding.
 
-**Implication for harness:** The harness's agent-agnostic adapter approach is correct. Rather than forking a specific agent (Stripe's approach), the harness wraps any CLI agent through adapters. This is more portable but less deeply integrated.
+**Implication for rein:** Rein's agent-agnostic adapter approach is correct. Rather than forking a specific agent (Stripe's approach), rein wraps any CLI agent through adapters. This is more portable but less deeply integrated.
 
 ---
 
@@ -133,35 +133,35 @@ Agent 4 argues 1,300 PRs/week distributed across 3,000-4,000 engineers is manage
 | 5 | Review rejection rate | Cannot assess review gate effectiveness |
 | 6 | Post-merge defect rates | Cannot evaluate code quality |
 | 7 | Task decomposition process | Cannot replicate task scoping |
-| 8 | Context window management approach | Cannot compare to harness's approach |
+| 8 | Context window management approach | Cannot compare to Rein's approach |
 | 9 | Isolation technology (container vs VM) | Cannot replicate infrastructure |
 | 10 | Credential management model | Cannot assess security posture |
 
 ---
 
-## Actionable Design Implications for the Harness
+## Actionable Design Implications for Rein
 
 ### Already Aligned (No Changes Needed)
 
-| Harness Feature | Stripe Equivalent | Status |
+| Rein Feature | Stripe Equivalent | Status |
 |----------------|-------------------|--------|
 | `max_rounds = 2` default | Max 2 CI rounds | Aligned |
 | Quality gate signals (lint, tests, build) | Deterministic nodes in Blueprint | Aligned |
 | Sandbox isolation (worktree/tempdir) | Pre-warmed devboxes | Aligned (lighter-weight) |
 | Round mechanism with structured feedback | CI failure → agent retry with errors | Aligned |
-| Agent-agnostic adapter protocol | Goose fork (model-locked) | Harness is more flexible |
-| Context pressure monitoring | Not addressed by Stripe | Harness adds value Stripe avoids |
+| Agent-agnostic adapter protocol | Goose fork (model-locked) | Rein is more flexible |
+| Context pressure monitoring | Not addressed by Stripe | Rein adds value Stripe avoids |
 | Review agent signal | PR as approval gate | Aligned (automated vs human) |
 
 ### Potential Enhancements (Informed by Deep Dive)
 
-1. **Per-task tool filtering** — Add optional `tools` field to task definitions or `harness.toml` that specifies which MCP tools to expose for a given task type. Mirrors Stripe's curated ~15 tools per task. Not MVP-critical.
+1. **Per-task tool filtering** — Add optional `tools` field to task definitions or `rein.toml` that specifies which MCP tools to expose for a given task type. Mirrors Stripe's curated ~15 tools per task. Not MVP-critical.
 
 2. **Context pre-hydration step** — Add optional `pre_hydrate` commands to task definitions that run before agent invocation to assemble context (fetch docs, search code, resolve references). Mirrors Stripe's deterministic prefetching. Not MVP-critical.
 
 3. **Autofix integration** — The quality gate could support an `autofix` mode for certain signals (e.g., `lint --fix`) that applies deterministic fixes without consuming an agent round. Mirrors Stripe's autofix-before-CI pattern. Low effort, high value.
 
-4. **Escalation handling** — When `max_rounds` is exhausted with verdict `"fail"`, the harness could produce a structured escalation report (what was attempted, what failed, diagnostic summary) rather than just recording the failure. Mirrors Stripe's human escalation path.
+4. **Escalation handling** — When `max_rounds` is exhausted with verdict `"fail"`, rein could produce a structured escalation report (what was attempted, what failed, diagnostic summary) rather than just recording the failure. Mirrors Stripe's human escalation path.
 
 ---
 
@@ -187,9 +187,9 @@ Agent 7's reproducibility analysis is the most practically important finding. Th
 5. Dedicated "Leverage" team (estimated 5-15 engineers)
 6. Corporate LLM API contracts and compute budget
 
-### The Harness's Niche
+### Rein's Niche
 
-The harness captures the portable patterns without requiring the non-portable infrastructure. It is the "Minions for individual developers" — same architectural principles (deterministic gates, bounded rounds, context awareness) adapted for local-first, single-agent execution without dedicated infrastructure.
+Rein captures the portable patterns without requiring the non-portable infrastructure. It is the "Minions for individual developers" — same architectural principles (deterministic gates, bounded rounds, context awareness) adapted for local-first, single-agent execution without dedicated infrastructure.
 
 The key differentiator is **context pressure monitoring** — something Stripe avoids by architecture (tight task scoping) but that smaller teams need because their tasks are less well-scoped and their infrastructure is less mature.
 

@@ -1,4 +1,4 @@
-# Agentic Harness — Token Model & Budget
+# Rein — Token Model & Budget
 
 Single source of truth for token normalization, budget thresholds, and budget analysis.
 
@@ -29,7 +29,7 @@ The `frozen=True` dataclass requires `object.__setattr__` in `__post_init__` to 
 
 ## Field Mapping
 
-Each agent reports token usage differently. The harness normalizes into the fields above. See [AGENTS.md](AGENTS.md) for full per-agent extraction details.
+Each agent reports token usage differently. Rein normalizes into the fields above. See [AGENTS.md](AGENTS.md) for full per-agent extraction details.
 
 | Normalized Field | Claude Code | Codex CLI | Gemini CLI |
 |---|---|---|---|
@@ -42,7 +42,7 @@ Each agent reports token usage differently. The harness normalizes into the fiel
 
 ## Cache Semantics
 
-Providers differ in whether their "input" field includes cached tokens. The harness normalizes `input_tokens` to always mean **total input tokens processed** (inclusive of cache), so budget math is consistent regardless of which agent is used.
+Providers differ in whether their "input" field includes cached tokens. Rein normalizes `input_tokens` to always mean **total input tokens processed** (inclusive of cache), so budget math is consistent regardless of which agent is used.
 
 **Per-provider raw semantics:**
 
@@ -54,7 +54,7 @@ Claude is the odd one out — without the summation fix, its normalized `input_t
 
 ## Context Pressure Model
 
-Context pressure is the harness's primary operational metric — see [SESSIONS.md](SESSIONS.md) for the full monitoring protocol and zone actions.
+Context pressure is Rein's primary operational metric — see [SESSIONS.md](SESSIONS.md) for the full monitoring protocol and zone actions.
 
 ### ZoneConfig
 
@@ -209,5 +209,5 @@ If a task consistently exceeds its budget, break it into smaller tasks rather th
 **Override per-run:**
 
 ```bash
-harness run -t tasks/my_task.json --budget 50000
+rein run -t tasks/my_task.json --budget 50000
 ```

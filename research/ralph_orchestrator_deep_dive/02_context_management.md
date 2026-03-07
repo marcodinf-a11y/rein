@@ -2,7 +2,7 @@
 
 **Deep Dive Document 02 | March 2026**
 
-How ralph-orchestrator tracks, manages, and rotates context. Compared against the harness's green/yellow/red zone model.
+How ralph-orchestrator tracks, manages, and rotates context. Compared against Rein's green/yellow/red zone model.
 
 ---
 
@@ -14,7 +14,7 @@ What it does track:
 - **Post-hoc cost:** Parses the agent's output stream for cost/token metadata after each iteration completes. For Claude, this comes from `--output-format stream-json` `Result` events containing `total_cost_usd`, `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`.
 - **Cumulative cost:** `LoopState.cumulative_cost` accumulates USD across iterations for the `max_cost_usd` check.
 
-**This is a fundamental difference from the harness.** Ralph does not know, and cannot know, how close the agent is to context degradation during a given iteration. It avoids the problem entirely by keeping iterations short enough that context exhaustion within a single iteration is unlikely.
+**This is a fundamental difference from rein.** Ralph does not know, and cannot know, how close the agent is to context degradation during a given iteration. It avoids the problem entirely by keeping iterations short enough that context exhaustion within a single iteration is unlikely.
 
 Source: `stream_parser.rs`, `execution_outcome.rs` in ralph-core.
 
@@ -22,7 +22,7 @@ Source: `stream_parser.rs`, `execution_outcome.rs` in ralph-core.
 
 ## 2. Token Thresholds and Actions
 
-**There are no token-based thresholds.** Ralph has no equivalent to the harness's green/yellow/red zones. It does not trigger graceful stops, kills, or warnings based on token usage.
+**There are no token-based thresholds.** Ralph has no equivalent to Rein's green/yellow/red zones. It does not trigger graceful stops, kills, or warnings based on token usage.
 
 Instead, ralph-orchestrator uses these termination conditions:
 
@@ -41,9 +41,9 @@ Source: `config.rs`, `loop_state.rs`, `termination.rs` in ralph-core.
 
 ---
 
-## 3. Comparison with the Harness's Zone Model
+## 3. Comparison with Rein's Zone Model
 
-| Dimension | ralph-orchestrator | Agentic Harness |
+| Dimension | ralph-orchestrator | Rein |
 |-----------|-------------------|----------------|
 | **Token tracking** | Post-hoc from backend stream | Real-time stream parsing |
 | **Context pressure** | Not computed | `utilization_pct = tokens / context_window` |
@@ -53,7 +53,7 @@ Source: `config.rs`, `loop_state.rs`, `termination.rs` in ralph-core.
 | **Measurement method** | `post_completion` only | `realtime`, `post_completion`, `unmonitored` |
 | **Cache awareness** | Tracks cache tokens (Claude) | Normalizes cache across agents, excludes from budget |
 
-**The harness can intervene during an iteration; ralph cannot.** If an agent enters a death spiral within a single iteration (e.g., requesting enormous context, hitting compaction), ralph will not notice until the iteration completes (or the agent crashes). The harness detects this in real-time and kills the process before quality degrades.
+**Rein can intervene during an iteration; ralph cannot.** If an agent enters a death spiral within a single iteration (e.g., requesting enormous context, hitting compaction), ralph will not notice until the iteration completes (or the agent crashes). Rein detects this in real-time and kills the process before quality degrades.
 
 ---
 
@@ -94,9 +94,9 @@ The scratchpad (`.ralph/agent/scratchpad.md`) is ralph-orchestrator's key innova
 - **Budget-capped:** ~16,000 characters (tail-retained, FIFO eviction)
 - **Structural awareness:** Section headings are preserved even when content is trimmed
 
-This is functionally equivalent to the harness's seed files + LEARNINGS.md concept, but with automatic budget management. The harness carries forward artifacts via `files` in task JSON; ralph carries forward operational notes via scratchpad.
+This is functionally equivalent to Rein's seed files + LEARNINGS.md concept, but with automatic budget management. Rein carries forward artifacts via `files` in task JSON; ralph carries forward operational notes via scratchpad.
 
-**Key difference:** The scratchpad is a single shared document that grows and is trimmed. The harness's seed files are per-task and explicitly defined by the operator. Ralph's approach is more autonomous (agent decides what to write); the harness's is more controlled (operator decides what to seed).
+**Key difference:** The scratchpad is a single shared document that grows and is trimmed. Rein's seed files are per-task and explicitly defined by the operator. Ralph's approach is more autonomous (agent decides what to write); Rein's is more controlled (operator decides what to seed).
 
 ---
 
@@ -109,7 +109,7 @@ However, there is no safeguard if:
 - The agent's own tool use generates massive context within one iteration
 - The agent enters a recursive exploration that fills its window
 
-The harness addresses all three via real-time pressure monitoring and zone-based intervention.
+Rein addresses all three via real-time pressure monitoring and zone-based intervention.
 
 Source: no compaction-related code found in ralph-core or ralph-adapters.
 
@@ -119,5 +119,5 @@ Source: no compaction-related code found in ralph-core or ralph-adapters.
 
 - github.com/mikeyobrien/ralph-orchestrator (v2.7.0)
 - Source files: `stream_parser.rs`, `config.rs`, `loop_state.rs`, `scratchpad.rs`, `event_loop.rs`
-- ARCHITECTURE.md, TOKENS.md (agentic harness)
+- ARCHITECTURE.md, TOKENS.md (rein)
 - research/ralph_wiggum_deep_dive/03_validated_patterns.md

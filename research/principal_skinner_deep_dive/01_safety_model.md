@@ -2,7 +2,7 @@
 
 **Deep Dive Document 01 | March 2026**
 
-An analysis of Principal Skinner's safety model, its philosophical foundations, and how it maps to the agentic harness's existing controls.
+An analysis of Principal Skinner's safety model, its philosophical foundations, and how it maps to Rein's existing controls.
 
 ---
 
@@ -19,7 +19,7 @@ This framing is useful but overly binary. Real systems use both:
 | Sandbox isolation | Deterministic | Worktree contains all writes to a disposable copy | Agent cannot affect main tree regardless of actions |
 | Process kill | Deterministic | SIGKILL at zone Red threshold | Agent terminated regardless of state |
 
-The harness uses **both** probabilistic and deterministic controls. The agent's system prompt includes task-scoped instructions (probabilistic). The subprocess runs in a sandbox (deterministic). The zone monitor kills at thresholds (deterministic). The quality gate validates output (deterministic). Principal Skinner frames this as an either/or choice; in practice, defense in depth uses all available layers.
+Rein uses **both** probabilistic and deterministic controls. The agent's system prompt includes task-scoped instructions (probabilistic). The subprocess runs in a sandbox (deterministic). The zone monitor kills at thresholds (deterministic). The quality gate validates output (deterministic). Principal Skinner frames this as an either/or choice; in practice, defense in depth uses all available layers.
 
 The honest assessment: deterministic controls are stronger *when they exist*, but they cannot cover every possible failure mode. No allowlist anticipates every dangerous command. No sandbox prevents every information leak. Probabilistic guidance fills the gaps between deterministic controls.
 
@@ -35,9 +35,9 @@ The OWASP Top 10 for Agentic Applications (2026) provides the most structured ta
 
 **Principal Skinner's response:** Pre-execution tool-use interception. Every tool call is evaluated against a policy before reaching the OS. Sondera implements this via Cedar policies with PRE_TOOL hooks that block `sudo`, `rm -rf` variants, cloud credential access, and `crontab`.
 
-**Harness's response:** Sandbox containment. The agent can use any tool within the sandbox. If it deletes everything in the worktree, the main tree is unaffected. The quality gate then evaluates whether the output is acceptable.
+**Rein's response:** Sandbox containment. The agent can use any tool within the sandbox. If it deletes everything in the worktree, the main tree is unaffected. The quality gate then evaluates whether the output is acceptable.
 
-**Gap analysis:** The harness does not prevent tool misuse *within* the sandbox. An agent could spend its entire token budget running destructive commands that produce no useful output. This is a cost problem (wasted tokens), not a safety problem (no production impact). For the harness's use case, this tradeoff is acceptable. For agents with network access or cloud credentials, it would not be.
+**Gap analysis:** Rein does not prevent tool misuse *within* the sandbox. An agent could spend its entire token budget running destructive commands that produce no useful output. This is a cost problem (wasted tokens), not a safety problem (no production impact). For Rein's use case, this tradeoff is acceptable. For agents with network access or cloud credentials, it would not be.
 
 ### 2.2 ASI08 — Cascading Failures
 
@@ -45,9 +45,9 @@ The OWASP Top 10 for Agentic Applications (2026) provides the most structured ta
 
 **Principal Skinner's response:** Behavioral circuit breakers that monitor action frequency and impact. Auto-escalation to HITL when patterns indicate cascading failure.
 
-**Harness's response:** Zone-based intervention (Green/Yellow/Red thresholds), max 2 CI rounds per task, token budget with real-time monitoring. These are circuit breakers — they just trigger on context pressure rather than action content.
+**Rein's response:** Zone-based intervention (Green/Yellow/Red thresholds), max 2 CI rounds per task, token budget with real-time monitoring. These are circuit breakers — they just trigger on context pressure rather than action content.
 
-**Gap analysis:** The harness's circuit breakers are resource-based (how much context consumed) rather than behavior-based (what actions taken). An agent that efficiently executes destructive commands would not trigger a zone transition. In practice, destructive loops tend to generate large outputs (error messages, stack traces) that *do* increase context pressure, so the gap is smaller than it appears — but it exists.
+**Gap analysis:** Rein's circuit breakers are resource-based (how much context consumed) rather than behavior-based (what actions taken). An agent that efficiently executes destructive commands would not trigger a zone transition. In practice, destructive loops tend to generate large outputs (error messages, stack traces) that *do* increase context pressure, so the gap is smaller than it appears — but it exists.
 
 ### 2.3 ASI10 — Rogue Agents
 
@@ -55,9 +55,9 @@ The OWASP Top 10 for Agentic Applications (2026) provides the most structured ta
 
 **Principal Skinner's response:** Agent identity (per-agent credentials), immutable audit logs, kill switches, governance frameworks.
 
-**Harness's response:** Subprocess isolation (SIGTERM/SIGKILL), sandbox isolation, review agent (separate agent evaluates output in read-only sandbox), structured reports.
+**Rein's response:** Subprocess isolation (SIGTERM/SIGKILL), sandbox isolation, review agent (separate agent evaluates output in read-only sandbox), structured reports.
 
-**Gap analysis:** The harness's review agent is a strong control that Principal Skinner does not propose. Having a second agent evaluate the first agent's output — in a separate, read-only sandbox with its own token budget — provides adversarial evaluation at the output level. Principal Skinner focuses on input-level controls (block dangerous actions); the harness adds output-level controls (evaluate whether the result is correct).
+**Gap analysis:** Rein's review agent is a strong control that Principal Skinner does not propose. Having a second agent evaluate the first agent's output — in a separate, read-only sandbox with its own token budget — provides adversarial evaluation at the output level. Principal Skinner focuses on input-level controls (block dangerous actions); rein adds output-level controls (evaluate whether the result is correct).
 
 ---
 
@@ -69,7 +69,7 @@ This is a real and well-documented failure mode. The Ralph Wiggum deep dive iden
 
 **How each system addresses overbaking:**
 
-| Control | Principal Skinner | Harness |
+| Control | Principal Skinner | Rein |
 |---------|------------------|---------|
 | Iteration cap | Financial safeguard only — explicitly insufficient | Token budget + max 2 CI rounds |
 | Action monitoring | Proposed: detect escalating risk in tool calls | Not implemented |
@@ -77,7 +77,7 @@ This is a real and well-documented failure mode. The Ralph Wiggum deep dive iden
 | Post-execution check | Not proposed | Quality gate: validation commands catch deleted tests, placeholder stubs |
 | Review agent | Not proposed | Separate agent reviews output for correctness |
 
-The harness's quality gate is the strongest anti-overbaking control in either system. An agent that deletes tests to make failures disappear will fail the quality gate's validation commands (which the operator defines, not the agent). An agent that implements placeholder stubs will fail the review agent's assessment. These are post-execution controls — they do not prevent overbaking, but they detect and reject its output.
+Rein's quality gate is the strongest anti-overbaking control in either system. An agent that deletes tests to make failures disappear will fail the quality gate's validation commands (which the operator defines, not the agent). An agent that implements placeholder stubs will fail the review agent's assessment. These are post-execution controls — they do not prevent overbaking, but they detect and reject its output.
 
 Principal Skinner's proposed pre-execution detection (monitoring action patterns for escalating desperation) is theoretically superior but has no implementation, no detection algorithm, and no false-positive analysis. The concept is sound; the engineering is absent.
 
@@ -91,15 +91,15 @@ Neither system fully addresses sycophancy:
 
 - **Principal Skinner** proposes that deterministic controls override the model's sycophantic tendencies. If the policy blocks `rm -rf`, the model cannot comply with a prompt that requires it. This is true but narrow — sycophancy manifests in subtler ways than blocked commands.
 
-- **The harness** uses a review agent — a separate model invocation with its own system prompt, evaluating the implementation agent's output. The review agent has no loyalty to the implementation agent's goals. This provides adversarial evaluation but only at the output level; it cannot detect in-session sycophantic reasoning.
+- **Rein** uses a review agent — a separate model invocation with its own system prompt, evaluating the implementation agent's output. The review agent has no loyalty to the implementation agent's goals. This provides adversarial evaluation but only at the output level; it cannot detect in-session sycophantic reasoning.
 
 The deeper problem: sycophancy is a model-level behavior that neither orchestration-level controls nor infrastructure-level interception can fully address. An agent that silently implements a subtly wrong solution (because the prompt implies urgency) will pass both tool-use interception (no dangerous commands) and post-execution validation (tests pass, but the logic is subtly incorrect). This is a model alignment problem, not an orchestration problem. Both systems acknowledge the risk; neither solves it.
 
 ---
 
-## 5. The Harness's Safety Model: What It Already Does
+## 5. Rein's Safety Model: What It Already Does
 
-The harness's safety model is defense in depth through containment and evaluation:
+Rein's safety model is defense in depth through containment and evaluation:
 
 ```
 Layer 1: Sandbox isolation (worktree/tempdir/copy)
@@ -108,8 +108,8 @@ Layer 1: Sandbox isolation (worktree/tempdir/copy)
 
 Layer 2: Process isolation (subprocess with SIGTERM/SIGKILL)
   - Agent runs as child process
-  - Harness can terminate at any time
-  - No shared state between agent and harness process
+  - Rein can terminate at any time
+  - No shared state between agent and rein process
 
 Layer 3: Resource limits (token budget, zone thresholds, round caps)
   - Context pressure monitored in real time
@@ -127,25 +127,25 @@ Layer 5: Adversarial review (review agent)
   - No shared context or loyalty
 ```
 
-This is five layers of deterministic control — none of which Principal Skinner acknowledges or accounts for, because Principal Skinner addresses the *Ralph Loop* (which has none of these layers) rather than the *harness*.
+This is five layers of deterministic control — none of which Principal Skinner acknowledges or accounts for, because Principal Skinner addresses the *Ralph Loop* (which has none of these layers) rather than *rein*.
 
 ---
 
 ## 6. The Gap: Action-Content Analysis
 
-The harness's genuine gap is action-content analysis. It monitors *how much* context the agent consumes but not *what* the agent does with its tool calls. Principal Skinner correctly identifies this as a distinct safety dimension.
+Rein's genuine gap is action-content analysis. It monitors *how much* context the agent consumes but not *what* the agent does with its tool calls. Principal Skinner correctly identifies this as a distinct safety dimension.
 
-**What the harness tracks:** Token count, context pressure percentage, zone transitions, round count.
+**What rein tracks:** Token count, context pressure percentage, zone transitions, round count.
 
-**What the harness does not track:** Number of file deletions, frequency of bash commands, patterns in command arguments, network access attempts, environment variable reads.
+**What rein does not track:** Number of file deletions, frequency of bash commands, patterns in command arguments, network access attempts, environment variable reads.
 
 This gap matters most for:
-- Agents with network access (not the harness's current use case)
-- Agents with cloud credentials (not the harness's current use case)
+- Agents with network access (not Rein's current use case)
+- Agents with cloud credentials (not Rein's current use case)
 - Long-running autonomous sessions (limited by token budget)
 - Multi-agent systems where one agent's actions affect another's environment
 
-For the harness's current scope — local development, operator-supervised, task-scoped — the gap is low-risk. The sandbox contains blast radius, the quality gate catches bad output, and the review agent provides adversarial evaluation. Adding action-content analysis is a worthwhile incremental improvement, not an urgent safety requirement.
+For Rein's current scope — local development, operator-supervised, task-scoped — the gap is low-risk. The sandbox contains blast radius, the quality gate catches bad output, and the review agent provides adversarial evaluation. Adding action-content analysis is a worthwhile incremental improvement, not an urgent safety requirement.
 
 ---
 
@@ -155,6 +155,6 @@ For the harness's current scope — local development, operator-supervised, task
 - "The Anthropic Attack." securetrajectories.substack.com, 2026.
 - OWASP. "Top 10 for Agentic Applications 2026." owasp.org, 2026.
 - OpenClaw/Sondera. Cedar-based policy-as-code for agent tool control.
-- Agentic Harness: ARCHITECTURE.md, TOKENS.md, SESSIONS.md
+- Rein: ARCHITECTURE.md, TOKENS.md, SESSIONS.md
 - research/ralph_wiggum_deep_dive/04_failure_modes.md
 - research/06_agent_sandboxing_isolation.md
