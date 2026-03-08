@@ -535,6 +535,19 @@ validation_commands:
 
 The `files` field seeds the sandbox before the agent runs. Keys are relative paths, values are file contents. Directories are created automatically.
 
+### Auto-Seeded Files
+
+In addition to task-defined `files`, rein automatically seeds several files into every sandbox:
+
+| File | Source | Purpose |
+|------|--------|---------|
+| `LEARNINGS.md` | `.rein/LEARNINGS.md` from project root (or empty) | Operational knowledge carried across sessions. Injected at setup, extracted after final verdict. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md). |
+| `PROGRESS.md` | Empty | Agent writes progress after each commit |
+| `DEFERRED.md` | Empty | Agent logs pre-existing issues |
+| `.rein/` | Directory | Namespace for rein artifacts (completion marker) |
+
+These files are seeded *after* task `files` but *before* `setup_commands` run. The task author does not need to include them.
+
 ### JSON Example
 
 ```json

@@ -41,11 +41,15 @@ A "session" in rein is a single task execution: one task dispatched to one agent
 6. VALIDATE     Run validation commands in sandbox
                  Score: all pass → 1.0, any fail → 0.0
                  │
-7. REPORT       Generate structured JSON report
+7. EXTRACT      Extract learnings from sandbox LEARNINGS.md
+                 Diff against .rein/LEARNINGS.md in project root
+                 Validate new entries, merge back (see ADR-011)
+                 │
+8. REPORT       Generate structured JSON report
                  Save to results/{task_id}_{timestamp}.json
                  │
-8. CLEANUP      Remove sandbox directory
-                 (Artifacts already captured)
+9. CLEANUP      Remove sandbox directory
+                 (Artifacts and learnings already captured)
 ```
 
 Step 4 (MONITOR) is the defining step of rein. It runs concurrently with the agent — reading the agent's output stream in real-time and computing context pressure after each turn completes. See [Context Pressure Monitoring](#context-pressure-monitoring) below.
@@ -230,4 +234,5 @@ For tasks that need iteration:
 1. **Break it down** — split a large task into sequential subtasks, each with its own budget. Size task artifacts to fit within the green zone.
 2. **Fresh context per subtask** — each subtask gets a clean sandbox and a fresh agent session (zero context pressure).
 3. **Carry forward artifacts** — use `files` in the next task's JSON to seed with output from the previous task.
-4. **Monitor pressure trends** — if context pressure at completion is increasing across subtasks, the problem decomposition may need rethinking. The per-task metrics log enables this analysis.
+4. **Carry forward learnings** — `.rein/LEARNINGS.md` in the project root accumulates operational knowledge across sessions. Each session reads learnings at start (injection) and writes discoveries back after its final verdict (extraction). Knowledge compounds — "tests need `--test-threads=1`" discovered in session 1 benefits all subsequent sessions. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md).
+5. **Monitor pressure trends** — if context pressure at completion is increasing across subtasks, the problem decomposition may need rethinking. The per-task metrics log enables this analysis.

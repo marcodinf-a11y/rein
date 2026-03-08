@@ -152,7 +152,8 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 | ID | Requirement | Source | Module |
 |----|-------------|--------|--------|
 | FR-090 | Completion promise signal: check for `.rein/complete` marker, cross-reference with validation | ROADMAP.md | `evaluate.py` |
-| FR-091 | LEARNINGS.md seed file with 80-line hard cap | ROADMAP.md | `runner.py` |
+| FR-091 | LEARNINGS.md injection: at sandbox setup, copy `.rein/LEARNINGS.md` from project root or create empty seed | ROADMAP.md | `learnings.py` |
+| FR-091a | LEARNINGS.md extraction: after final verdict, diff sandbox learnings against project root, validate entries (single line, `- ` prefix, ≤ 200 chars, no duplicates), merge, warn if > 80 lines ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) | ROADMAP.md | `learnings.py` |
 | FR-092 | Structured escalation report on verdict "fail" | ROADMAP.md | `runner.py` |
 | FR-093 | Bounded retry cap (default 2, configurable per-task or CLI) | ROADMAP.md | `runner.py` |
 | FR-094 | Defense-in-depth prompt instruction (context pressure awareness in agent prompt) | ROADMAP.md | `runner.py` |

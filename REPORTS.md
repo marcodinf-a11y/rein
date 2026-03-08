@@ -118,6 +118,31 @@ results/{task_id}_{YYYYMMDD_HHMMSS}.json
 
 The timestamp differentiates multiple runs of the same task.
 
+## Learnings Extraction
+
+Each report includes a `learnings` section documenting what operational knowledge was extracted from the sandbox back to the project root (`.rein/LEARNINGS.md`). This runs after the final quality gate verdict — not after each retry round. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md).
+
+```json
+{
+    "learnings": {
+        "extracted": true,
+        "new_entries": [
+            "- build: `cargo build --release` (debug builds fail timing tests)",
+            "- test: `cargo test -- --test-threads=1` (DB tests not parallelizable)"
+        ],
+        "total_lines": 12,
+        "warnings": []
+    }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `extracted` | `boolean` — whether extraction ran (false if sandbox had no LEARNINGS.md) |
+| `new_entries` | List of entries added to the project root file this session |
+| `total_lines` | Total line count in `.rein/LEARNINGS.md` after merge |
+| `warnings` | List of warning strings (e.g., "LEARNINGS.md exceeds 80 lines (currently 85), operator curation recommended") |
+
 ## Budget Analysis in Reports
 
 The `budget_analysis` block in each result entry provides a self-contained summary of token budget utilization, including a `cache_efficiency` sub-object that breaks out cache read and write tokens. For the full specification of budget tiers, normalized token accounting, and the warning/exceeded thresholds, see [TOKENS.md](TOKENS.md).

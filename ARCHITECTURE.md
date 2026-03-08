@@ -52,6 +52,7 @@ rein/
             models.py               # Core dataclasses/TypedDicts
             tokens.py               # Token normalization + ContextPressure + ZoneConfig
             sandbox.py              # Execution isolation (worktrees/tmp dirs)
+            learnings.py            # LEARNINGS.md injection, extraction, validation
             evaluate.py             # Result evaluation and scoring
             agents/
                 __init__.py
@@ -86,6 +87,18 @@ Creates an isolated sandbox for each run based on the task's `workspace` configu
 | `copy` | Copy source tree into temp directory | Current commit (git repo) or auto-created initial commit (non-git) | Delete temp directory |
 
 After the sandbox is created, seed files from `files` are written (overwriting or adding), then `setup_commands` run. The agent's `cwd` is set to the sandbox directory.
+
+#### LEARNINGS.md Injection and Extraction
+
+Rein manages a persistent `LEARNINGS.md` file at `.rein/LEARNINGS.md` in the project root. This file carries operational knowledge (build commands, test quirks, naming conventions) across sessions.
+
+**Injection (session start):** During sandbox setup, `learnings.inject()` copies `.rein/LEARNINGS.md` from the project root into the sandbox as `LEARNINGS.md`. If the project root file doesn't exist, an empty file with a `# Learnings` header is created. The agent is instructed to read this file before starting and append discoveries during execution (see [PROMPTS.md — Work Protocol](PROMPTS.md#3-work-protocol-defense-in-depth--fr-094)).
+
+**Extraction (post-session):** After the quality gate's final verdict (pass, warn, or fail after exhausting `max_rounds`), `learnings.extract()` reads `LEARNINGS.md` from the sandbox, diffs it against the project root version, validates new entries structurally, and appends them to `.rein/LEARNINGS.md`. Extraction happens once — not after each retry round. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md) for rationale.
+
+**Structural validation (no LLM):** Each new entry must start with `- `, be ≤ 200 characters, and not duplicate an existing entry. If the file exceeds 80 lines after merge, rein warns the operator but does not truncate — the operator curates.
+
+This is the first "write-back" pattern in rein. All other data flows are sandbox → report. The `inject`/`extract` interface in `learnings.py` is designed to be reusable for future write-back artifacts (e.g., DEFERRED.md).
 
 #### Agent Git Identity
 
@@ -232,7 +245,8 @@ Context pressure data structures — `ContextPressure`, `ZoneConfig`, and the mo
 8. Capture diff and artifacts before sandbox cleanup
 9. Run validation commands in sandbox
 10. Generate evaluation result (including `ContextPressure` in report)
-11. Save structured JSON report to `results/{task_id}_{YYYYMMDD_HHMMSS}.json` (see [REPORTS.md](REPORTS.md))
+11. **Extract learnings** — after final quality gate verdict, diff sandbox `LEARNINGS.md` against `.rein/LEARNINGS.md` in project root, validate new entries structurally, merge back. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md).
+12. Save structured JSON report to `results/{task_id}_{YYYYMMDD_HHMMSS}.json` (see [REPORTS.md](REPORTS.md))
 
 ## CLI Design
 

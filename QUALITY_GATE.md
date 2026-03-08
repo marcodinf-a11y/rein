@@ -482,6 +482,7 @@ Fix these issues. The code is already in the working directory from your previou
 - Each round has its own **token budget** and **timeout** (from rein.toml defaults or task definition)
 - The review agent runs fresh in each round — it does not carry context from previous reviews
 - `max_rounds` is configurable (default: 2). Setting `max_rounds = 1` disables retries.
+- **Learnings extraction happens once** after the final verdict (pass, warn, or fail), not after each round. This ensures only the final sandbox state — which reflects the cumulative work of all rounds — is persisted to `.rein/LEARNINGS.md`. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md).
 
 ---
 
@@ -712,6 +713,14 @@ The quality gate extends the existing report format from [REPORTS.md](REPORTS.md
             }
         }
     ],
+    "learnings": {
+        "extracted": true,
+        "new_entries": [
+            "- test: pytest tests/test_auth.py requires --timeout=60 for JWT validation tests"
+        ],
+        "total_lines": 8,
+        "warnings": []
+    },
     "final_verdict": "pass",
     "total_rounds": 2,
     "total_tokens": {
@@ -744,6 +753,7 @@ The quality gate extends the existing report format from [REPORTS.md](REPORTS.md
 | `config` | Records which rein.toml was used and key pipeline settings |
 | `rounds[]` | Each round bundles its agent result, evaluation, and quality gate verdict |
 | `rounds[].quality_gate` | Per-round aggregate verdict and signal breakdown |
+| `learnings` | Extraction results: new entries added, total line count, warnings ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) |
 | `final_verdict` | The verdict from the last round — the one that matters |
 | `total_rounds` | How many rounds were needed (1 = first attempt passed) |
 | `total_tokens` | Aggregate across all rounds, split by implementation vs review |
@@ -1038,4 +1048,4 @@ In review mode:
 | [REPORTS.md](REPORTS.md) | The extended report format supersedes the flat `results[]`/`evaluations[]` structure. Single-round runs without quality gate remain compatible. |
 | [TASKS.md](TASKS.md) | Task definitions are unchanged. `validation_commands` feeds the `tests` signal. `token_budget` and `timeout_seconds` apply per-round. |
 | [AGENTS.md](AGENTS.md) | Agent adapters are unchanged. The review agent is invoked through the same adapter interface. |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | The quality gate is a new subsystem between Output Capture and the final Report step. The execution flow gains a round loop around steps 6-11. |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | The quality gate is a new subsystem between Output Capture and the final Report step. The execution flow gains a round loop around steps 6-12. Learnings extraction ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) runs after the final verdict. |
