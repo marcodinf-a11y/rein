@@ -1,5 +1,14 @@
 # Rein — Architecture
 
+## Glossary
+
+- **Task** — a unit of work defined by a JSON (or YAML) file. One task = one prompt + optional files, setup commands, and validation commands.
+- **Run** — a single invocation of `rein run`. A run may dispatch one task (file path) or many (directory scan).
+- **Execution** — one task dispatched to one agent in one sandbox. A run with N tasks produces N executions.
+- **Session** — the agent's conversation context within an execution. Sessions may be continued across executions via `--resume`/`--continue` (agent-dependent).
+
+---
+
 ## System Overview
 
 Rein is a Python CLI application that orchestrates AI coding agents with **context pressure monitoring** as its core function. It loads task definitions, creates isolated sandboxes, invokes agents as subprocesses, monitors their token consumption in real-time against the model's context window, and intervenes when pressure thresholds are crossed — ensuring work is persisted before quality degrades.
@@ -75,6 +84,46 @@ Creates an isolated sandbox for each run based on the task's `workspace` configu
 | `copy` | Copy source tree into temp directory | Current commit (git repo) or auto-created initial commit (non-git) | Delete temp directory |
 
 After the sandbox is created, seed files from `files` are written (overwriting or adding), then `setup_commands` run. The agent's `cwd` is set to the sandbox directory.
+
+#### Agent Git Identity
+
+Every subprocess gets git author/committer environment variables so agent-authored commits are distinguishable from human commits in git history. Both `GIT_AUTHOR_*` and `GIT_COMMITTER_*` are set to the same values — no operator identity leaks into agent commits.
+
+```
+GIT_AUTHOR_NAME="{agent}/{model_short}/{effort}"
+GIT_AUTHOR_EMAIL="agent@rein.local"
+GIT_COMMITTER_NAME="{agent}/{model_short}/{effort}"
+GIT_COMMITTER_EMAIL="agent@rein.local"
+```
+
+The name format uses short model aliases (`opus`, `sonnet`, `o3`, `flash`, `pro`) for readability. When effort is not specified (or resolves to the agent's default), the `/{effort}` segment is omitted:
+
+| Agent | Model | Effort | Git Author |
+|-------|-------|--------|------------|
+| Claude Code | opus | high | `claude-code/opus/high` |
+| Claude Code | sonnet | *(default)* | `claude-code/sonnet` |
+| Codex CLI | o3 | high | `codex-cli/o3/high` |
+| Gemini CLI | pro | *(default)* | `gemini-cli/pro` |
+
+The email is a fixed constant — not a real address. It satisfies git's email requirement and provides a single grep target for all rein-managed commits:
+
+```bash
+# All agent-authored commits
+git log --author="agent@rein.local"
+
+# Commits by a specific agent/model
+git log --author="claude-code/opus"
+```
+
+These env vars are set on the agent subprocess and reused by rein when running wrap-up git commands (see [SESSIONS.md — Rein Wrap-Up Protocol](SESSIONS.md#rein-wrap-up-protocol)). This approach works for all three workspace types without requiring a `.git` directory at setup time — env vars take effect only when git commands actually run.
+
+**Environment variable handling:** Adapters copy `os.environ` and delete known conflict variables before spawning the subprocess. This prevents the parent process's environment from interfering with agent CLIs. Known conflicts:
+
+- **Claude:** `CLAUDECODE` — when set, `claude -p` refuses to run (detects nested invocation). The adapter must unset it.
+- **Codex:** No known conflicts. `CODEX_API_KEY` is required and passed through.
+- **Gemini:** No known conflicts.
+
+If new agent CLIs introduce similar env var conflicts, add them to the adapter's scrub list and document them here.
 
 Artifacts and diffs are captured *before* the sandbox is cleaned up.
 
@@ -221,8 +270,9 @@ gemini-cli     available    /usr/bin/gemini (v0.16.0)
 | Package | Purpose |
 |---|---|
 | `click` | CLI framework |
-| *(stdlib `json`)* | Task definition parsing |
 | `rich` | Terminal output formatting |
+| *(stdlib `asyncio`)* | Async runtime — subprocess orchestration via `asyncio.create_subprocess_exec` |
+| *(stdlib `json`)* | Task definition parsing |
 
 Python 3.12+. Linux, macOS, and Windows. No ML/AI libraries — Rein only *invokes* agents, it doesn't run models.
 

@@ -17,7 +17,7 @@ The initial release. One task, one agent, full lifecycle.
 - Structured JSON reports
 
 **Included from research (low-effort, high-impact):**
-- Agent git identity (`GIT_AUTHOR_NAME="{agent}/{model}/{effort}"`)
+- ~~Agent git identity (`GIT_AUTHOR_NAME="{agent}/{model}/{effort}"`)~~ → documented in [ARCHITECTURE.md](ARCHITECTURE.md#agent-git-identity)
 - Completion promise signal (`.rein/complete` marker)
 - LEARNINGS.md seed file with 80-line cap
 - Structured escalation report on failure

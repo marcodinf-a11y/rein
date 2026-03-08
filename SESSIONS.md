@@ -144,7 +144,7 @@ When rein stops an agent (context pressure — yellow or red zone — or wall-cl
 Wrap-up steps:
 
 1. **Drain stream buffer** — capture all NDJSON/JSONL lines received up to the kill point
-2. **Commit uncommitted changes** — `git add -A && git commit -m "rein: auto-commit at termination ({termination_reason})"` in the sandbox
+2. **Commit uncommitted changes** — `git add -A && git commit -m "rein: auto-commit at termination ({termination_reason})"` in the sandbox. The commit uses the agent's git identity (same `GIT_AUTHOR_*` / `GIT_COMMITTER_*` env vars set during sandbox setup — see [ARCHITECTURE.md — Agent Git Identity](ARCHITECTURE.md#agent-git-identity)), since the wrap-up is capturing the agent's uncommitted work.
 3. **Write per-run log file** — includes: task ID, agent, model, zone at termination, token consumption metrics (cumulative input/output, peak utilization %, measurement method), number of turns, kill signal sent, captured stream summary
 4. **Update PROGRESS.md** — append entry with: task ID, what was attempted (from task prompt), zone at termination, what was captured (git log summary, diff stat), whether a post-kill summary was generated
 5. **Log termination metrics** — per-task record for trend analysis: `{ task_id, agent, model, context_window, estimated_tokens_used, utilization_pct, zone, measurement_method, turns, termination_reason, duration_seconds, timestamp }`. The `termination_reason` field uses the enum: `completed` (normal exit), `timed_out` (wall-clock limit), `context_pressure` (zone kill), or `error` (adapter failure)

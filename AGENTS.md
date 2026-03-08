@@ -9,10 +9,10 @@ Per-agent invocation syntax, JSON output formats, token field mappings, and quir
 ### Invocation
 
 ```bash
-claude -p --output-format json --dangerously-skip-permissions --max-turns 50 "PROMPT"
+echo "PROMPT" | claude -p --output-format json --dangerously-skip-permissions --max-turns 50
 ```
 
-Run via `asyncio.create_subprocess_exec` with `cwd` set to the sandbox directory.
+Run via `asyncio.create_subprocess_exec` with `cwd` set to the sandbox directory. The prompt is delivered via stdin (piped to the process) rather than as a CLI argument — this avoids `ARG_MAX` limits on Linux for long prompts and is the standard delivery method for all agents.
 
 ### Key CLI Flags
 
@@ -119,7 +119,7 @@ claude -p "next query" --resume "$session_id"
 ### Quirks and Limitations
 
 - **Two naming conventions**: The top-level `usage` block uses **snake_case** (`input_tokens`), while `modelUsage` uses **camelCase** (`inputTokens`). Parse from `usage` — it is the aggregate across all models.
-- **Cannot run inside another Claude Code session**: When the `CLAUDECODE` env var is set, `claude -p` fails. The adapter must unset `CLAUDECODE` or pass a clean `env` dict to the subprocess.
+- **Cannot run inside another Claude Code session**: When the `CLAUDECODE` env var is set, `claude -p` fails. The adapter scrubs this variable before spawning the subprocess. See [ARCHITECTURE.md — Environment variable handling](ARCHITECTURE.md#2-execution-isolation-sandboxpy) for the cross-cutting env var policy.
 - **Cost available**: `total_cost_usd` at top level, `costUSD` per model in `modelUsage`.
 - **Effort control**: Set via `CLAUDE_CODE_EFFORT_LEVEL` env var on the subprocess (`low`, `medium`, `high`). No CLI flag. Supported on Opus 4.6 and Sonnet 4.6 only. The adapter sets this env var when the task or CLI specifies an `effort` value.
 
@@ -130,7 +130,7 @@ claude -p "next query" --resume "$session_id"
 ### Invocation
 
 ```bash
-codex exec --json --full-auto --skip-git-repo-check "PROMPT"
+echo "PROMPT" | codex exec --json --full-auto --skip-git-repo-check
 ```
 
 ### Key CLI Flags
@@ -217,7 +217,7 @@ codex exec resume <SESSION_ID>
 
 - **No `cache_creation` concept**: `cached_input_tokens` maps to `cache_read_tokens`; `cache_write_tokens` is always 0.
 - **Requires a Git repository** by default. The adapter always passes `--skip-git-repo-check` because sandboxes may not contain a `.git` directory.
-- **Runs in read-only sandbox** by default. `--full-auto` upgrades to `workspace-write`.
+- **Runs in read-only sandbox** by default. `--full-auto` upgrades to `workspace-write`. Rein uses `--full-auto` rather than `--yolo` because `--full-auto` auto-approves edits while preserving Codex's network and process sandboxing — `--yolo` disables all safeguards including the sandbox.
 - **Progress on stderr, results on stdout**: stderr gets streaming progress; stdout gets JSON events.
 - **Authentication**: `CODEX_API_KEY` env var (only supported in `codex exec` mode).
 - **Effort control**: Set via `--config 'model_reasoning_effort="<level>"'` (`minimal`, `low`, `medium`, `high`, `xhigh`). Requires Responses API wire protocol. Works with o3, o4-mini, gpt-5. Rein maps normalized `low`/`medium`/`high` values directly; Codex-specific `minimal` and `xhigh` are not available via the normalized `effort` field.
@@ -229,10 +229,10 @@ codex exec resume <SESSION_ID>
 ### Invocation
 
 ```bash
-gemini --output-format json --yolo "PROMPT"
+echo "PROMPT" | gemini --output-format json --yolo
 ```
 
-Alternative: `gemini -p "query"` or `echo "text" | gemini`.
+Prompt is delivered via stdin for all agents. See Claude invocation note for rationale.
 
 ### Key CLI Flags
 
@@ -340,7 +340,7 @@ No documented session resume mechanism.
 
 - **`prompt` / `candidates`** instead of `input` / `output` — different naming from the other two agents.
 - **`total` includes `thoughts`**: Gemini's own `total` field includes internal reasoning tokens. Rein computes its own total as `prompt + candidates` for consistency.
-- **JSON output can be unreliable**: GitHub issue #11184 reports `--output-format json` sometimes produces invalid JSON. The adapter should catch `json.JSONDecodeError` and fall back.
+- **JSON output can be unreliable**: GitHub issue #11184 reports `--output-format json` sometimes produces invalid JSON. The adapter catches `json.JSONDecodeError` and falls back: `normalized_tokens` is null, `result_text` is empty, raw stdout is preserved in `raw_output`, and the report sets `parse_error` with the exception message. See [ARCHITECTURE.md — Output Capture](ARCHITECTURE.md#4-output-capture-agentspy) for the full fallback protocol.
 - **No cost reporting**: Gemini CLI does not report cost in its output. Maps to `null` in results.
 - **Free tier limits**: 60 requests/min, 1,000 requests/day, 1M token context window on Gemini 2.5 Pro.
 - **Effort control**: No CLI flag or env var. Requires a custom model alias in `settings.json` with a `thinkingConfig` block. Gemini 2.5 uses integer `thinkingBudget`; Gemini 3 uses `thinkingLevel` enum (`minimal`/`low`/`medium`/`high`). The adapter must manage settings dynamically — this is the most complex effort integration of the three agents.
@@ -361,5 +361,6 @@ No documented session resume mechanism.
 | Session resume | `--resume <id>`, `--continue` | `resume <id>`, `resume --last` | Not available |
 | Auto-approve | `--dangerously-skip-permissions` | `--full-auto` | `--yolo` |
 | Headless mode | `-p` | `exec` | `-p` |
+| Git identity example | `claude-code/opus/high` | `codex-cli/o3/high` | `gemini-cli/pro` |
 | Graceful stop signal | `SIGTERM` (exit 143, no final output) | `SIGINT` (emits `TurnAborted` in JSONL; second `SIGINT` = hard kill) | `SIGTERM` (clean exit code 0, no final result event) |
 | Timeout behavior | [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (immediate): `SIGTERM` → 5s → `SIGKILL`. All complete NDJSON lines preserved. Exit code typically `-15` or `-9`. | Subprocess Termination Procedure (immediate): `SIGINT` → 5s → `SIGKILL`. All complete JSONL lines preserved. Exit code typically `130` or `-9`. | Subprocess Termination Procedure (immediate): `SIGTERM` → 5s → `SIGKILL`. All complete NDJSON lines preserved. Exit code typically `-15` or `-9`. |
