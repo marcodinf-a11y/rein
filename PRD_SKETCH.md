@@ -65,7 +65,7 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 | FR-033 | Classify pressure into zones (green/yellow/red) using `ZoneConfig` thresholds | TOKENS.md | `monitor.py` |
 | FR-034 | Support per-model zone threshold overrides from config | SESSIONS.md | `monitor.py` |
 | FR-035 | Green zone: continue execution | SESSIONS.md | `monitor.py` |
-| FR-036 | Yellow zone: wait for current turn to complete, then trigger graceful kill | SESSIONS.md | `monitor.py` |
+| FR-036 | Yellow zone: set `kill_pending` flag; fire graceful kill at the next turn boundary. Turn boundary detection is per-agent: Claude — inter-call gap (after last `message_delta`, before next `message_start`); Codex — `turn.completed` event. Agents in degraded mode (no mid-run tokens) cannot trigger yellow mid-run. | SESSIONS.md | `monitor.py` |
 | FR-037 | Red zone: trigger immediate kill | SESSIONS.md | `monitor.py` |
 | FR-038 | Degraded mode: when mid-run tokens unavailable, compute pressure post-completion only | SESSIONS.md | `monitor.py` |
 | FR-039 | Run wall-clock timer concurrently; timeout triggers immediate kill with `termination_reason=timed_out` | SESSIONS.md | `monitor.py` |

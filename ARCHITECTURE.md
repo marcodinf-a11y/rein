@@ -151,7 +151,7 @@ A shared procedure used whenever Rein needs to kill an agent subprocess — whet
 
 | Mode | When Used | Behavior |
 |---|---|---|
-| **Graceful** | Yellow zone (context pressure) | Wait for the agent's current turn to complete, then signal |
+| **Graceful** | Yellow zone (context pressure) | Set `kill_pending` flag; signal at next turn boundary (Claude: inter-call gap after `message_delta`/before `message_start`; Codex: `turn.completed` event) |
 | **Immediate** | Red zone (context pressure), timeout | Signal immediately — do not wait for the current turn |
 
 **Signal sequence:**

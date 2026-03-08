@@ -114,7 +114,7 @@ Not all agents provide the same level of mid-run token visibility:
 **Yellow — Graceful Stop:**
 
 1. Rein detects cumulative tokens crossing `green_max_pct` of context window
-2. Wait for the agent's current turn to complete (do not kill mid-turn — partial tool calls leave inconsistent state)
+2. Set `kill_pending` flag. Wait for the next turn boundary before killing — do not kill mid-turn (partial tool calls leave inconsistent state). Turn boundary detection is per-agent: for Claude Code, the inter-call gap after the last `message_delta` of the current API call and before the next `message_start`; for Codex, the next `turn.completed` event. Agents in degraded mode cannot trigger yellow mid-run (pressure is only computed post-completion).
 3. Apply [Subprocess Termination Procedure](ARCHITECTURE.md#subprocess-termination-procedure) (graceful mode); `termination_reason=context_pressure`
 4. Rein performs wrap-up (see [Rein Wrap-Up Protocol](#rein-wrap-up-protocol))
 5. Optionally dispatch post-kill summary agent (see [Post-Kill Summary Agent](#post-kill-summary-agent))
