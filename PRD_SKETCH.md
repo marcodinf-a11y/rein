@@ -250,7 +250,7 @@ Rein's reliability model follows a defense-in-depth strategy: five independent l
 ## 7. Success Metrics
 
 - **Rein overhead:** < 2 seconds for tempdir, < 10 seconds for worktree/copy (excluding agent execution and validation)
-- **Token normalization accuracy:** 0% deviation — exact match with raw agent-reported values
+- **Token normalization completeness:** zero dropped events — cumulative token count from stream monitoring matches the agent's final usage report on clean exits
 - **Task types supported:** 3 end-to-end (greenfield simple, greenfield with deps, brownfield worktree)
 - **Report schema compliance:** 100%, zero validation errors across all test runs
 

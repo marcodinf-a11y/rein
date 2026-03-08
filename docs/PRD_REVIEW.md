@@ -133,7 +133,7 @@ R1 scoped to Linux and macOS. Windows deferred to R2. The POSIX signal terminati
 ## Minor Nits
 
 - ~~S1 repeats "comparison is a byproduct" from BRIEF.md~~ Resolved: merged into one sentence.
-- S7 "0% deviation" for token normalization is a tautology when summing the agent's own fields. The metric should measure *completeness* (no dropped events), not accuracy.
+- ~~S7 "0% deviation" for token normalization is a tautology~~ Resolved: replaced with completeness metric (zero dropped events on clean exits).
 
 ---
 
