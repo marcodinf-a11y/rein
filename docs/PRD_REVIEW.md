@@ -118,9 +118,9 @@ Empty `validation_commands` → `score: null`, `validation_passed: null` (no val
 
 Already specified in [ADR-012](adr/ADR-012-structured-escalation-report.md) §`output_excerpt` extraction: scan for failure markers (`FAILED`, `Error:`, `AssertionError`, etc.) → 30 lines from first marker; no marker → last 30 lines; empty output → `null`.
 
-### S-5: FR-021 git identity source
+### S-5: FR-021 git identity source — RESOLVED
 
-No corresponding CLI flags or config keys to set author name/email. Hardcoded defaults? Configurable per-agent? Per-task?
+Already specified in [ADR-001](adr/ADR-001-agent-git-identity.md): name is deterministically derived from agent/model/effort (`claude-code/opus/high`), email is fixed `agent@rein.local`. No config keys needed — identity is a function of parameters that are already configurable. Rein safety commits (FR-060) reuse the agent identity with `rein:` commit message prefix.
 
 ---
 
