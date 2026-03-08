@@ -90,9 +90,9 @@ Resolved in G-3. Format is `rein.toml` everywhere. FR-085/086 in PRD_SKETCH.md u
 
 FR-060 now runs unconditionally on any termination reason (defense-in-depth). Checks `git status` first — no-op if nothing uncommitted. Commit message uses `rein:` prefix with termination reason to distinguish Rein's safety commit from the agent's deliberate work.
 
-### I-3: FR-047 signal mapping includes non-MVP agents
+### I-3: FR-047 signal mapping includes non-MVP agents — RESOLVED
 
-"SIGINT for Codex, SIGTERM for Claude/Gemini" — MVP is Claude-only. Should state the general rule and note which applies for R1.
+Added R1 scope note to FR-047 in PRD_SKETCH.md. The general rule (per-agent signal) is correct and stays — just annotated that R1 ships Claude only (SIGTERM).
 
 ### I-4: FR-091 / FR-091a sub-ID numbering
 

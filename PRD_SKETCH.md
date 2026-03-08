@@ -77,7 +77,7 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 |----|-------------|--------|--------|
 | FR-045 | Graceful mode: wait for current turn to complete, then signal | ARCHITECTURE.md | `runner.py` |
 | FR-046 | Immediate mode: signal immediately without waiting | ARCHITECTURE.md | `runner.py` |
-| FR-047 | Signal sequence: SIGINT for Codex, SIGTERM for Claude/Gemini; 5-second grace; SIGKILL if still alive | ARCHITECTURE.md | `runner.py` |
+| FR-047 | Signal sequence: SIGINT for Codex, SIGTERM for Claude/Gemini; 5-second grace; SIGKILL if still alive. R1 ships Claude only (SIGTERM). See [ADR-006](docs/adr/ADR-006-subprocess-termination-procedure.md) | ARCHITECTURE.md | `runner.py` |
 | FR-048 | Drain stdout buffer on kill — capture all complete NDJSON/JSONL lines, discard incomplete final line | ARCHITECTURE.md | `runner.py` |
 | FR-049 | Record process `returncode` as-is in report | ARCHITECTURE.md | `runner.py` |
 
