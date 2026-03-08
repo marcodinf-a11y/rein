@@ -92,9 +92,9 @@ Reports are saved to `results/{task_id}_{YYYYMMDD_HHMMSS}.json`. One report per 
 | `termination_reason` | Why the run ended: `completed` (normal), `timed_out` (wall-clock limit), `context_pressure` (zone kill), or `error` (adapter failure). |
 | `parse_error` | Exception message when NDJSON/JSONL parsing fails. `null` on success. When set, `normalized_tokens` is null and `result_text` is empty. |
 | `raw_output` | Raw stdout/stderr captured on parse failure. `null` on successful parse. |
-| `validation_passed` / `score` | Evaluation results from running validation commands. |
+| `validation_passed` / `score` | Evaluation results from running validation commands. `bool \| null` and `float \| null` respectively. `null` when `validation_commands` is empty (no validation ran — distinct from pass or fail). |
 | `completion_promise` | `boolean` — whether the agent wrote the `.rein/complete` marker file. |
-| `completion_confidence` | `"confident" \| "suspicious" \| "overconfident" \| "incomplete"` — cross-referenced outcome (see matrix below). |
+| `completion_confidence` | `"confident" \| "suspicious" \| "overconfident" \| "incomplete" \| "unverified" \| "unevaluated"` — cross-referenced outcome (see matrix below). |
 | `completion_summary` | Contents of the marker file (agent's self-assessment), or `null` if no marker. Empty string if marker exists but is empty. |
 
 ## Evaluation Scoring
@@ -103,8 +103,9 @@ Scoring is binary based on exit codes from [validation commands](TASKS.md):
 
 - All commands exit 0 → `score = 1.0` (pass)
 - Any command exits non-zero → `score = 0.0` (fail)
+- Empty `validation_commands` → `score = null`, `validation_passed = null` (no validation ran)
 
-Stdout/stderr from validation commands is captured in `validation_output` for debugging.
+Stdout/stderr from validation commands is captured in `validation_output` for debugging. When no validation commands are configured, `validation_output` is `null`.
 
 ### Completion Confidence
 
@@ -116,6 +117,8 @@ The completion promise (`.rein/complete` marker file) is cross-referenced agains
 | No | Yes | **Suspicious** | Validation passes but agent didn't signal completion. May indicate weak validation or agent ran out of context. |
 | Yes | No | **Overconfident** | Agent claims done but validation fails. Possible hallucination or reward hacking. |
 | No | No | **Incomplete** | Agent didn't finish and validation confirms it. Expected for context-pressure kills and timeouts. |
+| Yes | null | **Unverified** | Agent claims done but no validation commands configured. Promise cannot be verified. |
+| No | null | **Unevaluated** | No completion promise and no validation. No quality signal available. |
 
 ## Output Directory
 
@@ -202,7 +205,7 @@ The escalation report is defined and documented in [QUALITY_GATE.md](QUALITY_GAT
 | `round_history[]` | Per-round failure narrative with failing/passing signals |
 | `round_history[].output_excerpt` | First 30 lines from failure marker, or last 30 lines. Full output in `rounds[].evaluation.validation_output` |
 | `escalation_trigger` | Why escalation happened: `max_rounds_exhausted`, `context_pressure`, `timed_out`, or `error` |
-| `completion_confidence` | Final round's completion promise cross-reference ([ADR-002](docs/adr/ADR-002-completion-promise-signal.md)): `overconfident` (agent claimed done, validation failed) or `incomplete` (agent didn't claim done) |
+| `completion_confidence` | Final round's completion promise cross-reference ([ADR-002](docs/adr/ADR-002-completion-promise-signal.md)): `overconfident` (agent claimed done, validation failed), `incomplete` (agent didn't claim done), or `unverified` (agent claimed done, no validation configured). `unevaluated` does not appear in escalation (no promise + no validation + non-fail verdict = nothing to escalate). |
 | `learnings_snapshot` | Operational facts extracted from sandbox LEARNINGS.md ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) — context for the human picking up the work |
 | `diagnostic_summary` | Overall assessment with progress classification (`improved` / `stagnated` / `regressed`) |
 | `preserved_state` | Branch, commit SHA, diff stat — where to find the agent's work. `branch` is `null` for tempdir workspaces |

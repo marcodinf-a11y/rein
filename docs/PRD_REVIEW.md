@@ -110,9 +110,9 @@ Turn boundary detection is per-agent. Monitor sets `kill_pending` flag on yellow
 
 Two trigger conditions: (1) **static** — agent/mode known to lack mid-run tokens (Gemini, Claude with extended thinking), set at invocation; (2) **dynamic** — stream parse failure mid-run for an agent that normally supports real-time monitoring, logged as warning, falls back to post-completion pressure computation. FR-038, SESSIONS.md, and ARCHITECTURE.md updated.
 
-### S-3: Empty validation_commands scoring
+### S-3: Empty validation_commands scoring — RESOLVED
 
-FR-067 defines binary scoring but doesn't specify the result when `validation_commands` is empty. Score 1.0 (vacuous truth)? 0.0? null? FR-098 validates non-empty in strict mode, but warn/skip modes allow empty through.
+Empty `validation_commands` → `score: null`, `validation_passed: null` (no validation ran — distinct from pass or fail). Quality gate `tests` signal gets `status: "skip"`. Completion confidence matrix expanded from 4 to 6 outcomes: added `"unverified"` (promise + no validation) and `"unevaluated"` (no promise + no validation). Escalation report accepts `"unverified"` as a third confidence value. Updated in FR-067, ADR-002, ADR-012, ARCHITECTURE.md, REPORTS.md, QUALITY_GATE.md.
 
 ### S-4: FR-092 "30-line heuristic" unspecified
 
@@ -144,5 +144,5 @@ S6 lists Windows as a target. FR-047's SIGTERM/SIGKILL are POSIX-only. No FR add
 3. Add FR for workspace source path (G-4)
 4. ~~Tighten FR-036/038 with one sentence each on mechanism (S-1, S-2)~~ Resolved.
 5. Add FR for PROGRESS.md / DEFERRED.md seeding (G-2)
-6. Specify empty-validation scoring behavior (S-3)
+6. ~~Specify empty-validation scoring behavior (S-3)~~ Resolved.
 7. Address Windows process termination or scope R1 to POSIX

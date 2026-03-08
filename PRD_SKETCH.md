@@ -110,7 +110,7 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 |----|-------------|--------|--------|
 | FR-065 | Run `validation_commands` in sandbox after agent finishes | ARCHITECTURE.md | `evaluate.py` |
 | FR-066 | 60-second per-command timeout; kill on hang (SIGTERM → 5s → SIGKILL) | ARCHITECTURE.md | `evaluate.py` |
-| FR-067 | Binary scoring: all commands exit 0 → score 1.0, any non-zero → score 0.0 | ARCHITECTURE.md | `evaluate.py` |
+| FR-067 | Binary scoring: all commands exit 0 → score 1.0, any non-zero → score 0.0. Empty `validation_commands` → `score: null`, `validation_passed: null`. Quality gate `tests` signal gets `status: "skip"` (no commands to run). | ARCHITECTURE.md | `evaluate.py` |
 | FR-068 | Capture stdout/stderr from each validation command in report | REPORTS.md | `evaluate.py` |
 
 ### Reporting

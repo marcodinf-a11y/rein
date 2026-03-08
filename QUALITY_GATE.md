@@ -520,7 +520,7 @@ The escalation report is always generated mechanically (zero cost, zero failure 
 | `rounds_attempted` / `max_rounds` | How many rounds ran vs. the limit |
 | `round_history[]` | Per-round narrative: what failed, what passed, approach summary |
 | `escalation_trigger` | Why escalation happened: `max_rounds_exhausted`, `context_pressure`, `timed_out`, or `error` |
-| `completion_confidence` | From final round's completion promise ([ADR-002](docs/adr/ADR-002-completion-promise-signal.md)): `overconfident` or `incomplete` |
+| `completion_confidence` | From final round's completion promise ([ADR-002](docs/adr/ADR-002-completion-promise-signal.md)): `overconfident`, `incomplete`, or `unverified` |
 | `learnings_snapshot` | Operational facts the agent discovered during execution ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) |
 | `diagnostic_summary` | Overall assessment with progress classification (improved/stagnated/regressed) |
 | `preserved_state` | Where to find the agent's work: branch, commit SHA, diff stat |

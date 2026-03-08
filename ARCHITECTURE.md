@@ -190,9 +190,9 @@ Each adapter parses the agent's stdout (JSON or JSONL), extracts the result text
 
 ### 5. Evaluation (`evaluate.py`)
 
-Runs `validation_commands` in the sandbox after the agent finishes. Scoring is binary — all commands pass (score 1.0) or any fails (score 0.0). Results are written to a structured JSON report (see [REPORTS.md](REPORTS.md)).
+Runs `validation_commands` in the sandbox after the agent finishes. Scoring is binary — all commands pass (score 1.0) or any fails (score 0.0). If `validation_commands` is empty, `score` and `validation_passed` are `null` (no validation ran — distinct from pass or fail). The quality gate `tests` signal gets `status: "skip"`. Results are written to a structured JSON report (see [REPORTS.md](REPORTS.md)).
 
-**Completion promise:** Before running validation commands, the evaluator checks for a `.rein/complete` marker file in the sandbox. If present, the agent signaled that it believes the task is complete. The promise is cross-referenced against validation results to produce a four-outcome confidence classification: **confident**, **suspicious**, **overconfident**, or **incomplete**. See [ADR-002](docs/adr/ADR-002-completion-promise-signal.md) and [REPORTS.md](REPORTS.md) for the full matrix and report fields.
+**Completion promise:** Before running validation commands, the evaluator checks for a `.rein/complete` marker file in the sandbox. If present, the agent signaled that it believes the task is complete. The promise is cross-referenced against validation results to produce a six-outcome confidence classification: **confident**, **suspicious**, **overconfident**, **incomplete**, **unverified**, or **unevaluated**. See [ADR-002](docs/adr/ADR-002-completion-promise-signal.md) and [REPORTS.md](REPORTS.md) for the full matrix and report fields.
 
 **Validation timeout:** Each validation command has a fixed 60-second timeout. If a command doesn't exit within 60 seconds, Rein kills it (SIGTERM → 5s grace → SIGKILL) and records it as failed.
 

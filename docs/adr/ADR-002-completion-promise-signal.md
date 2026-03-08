@@ -16,7 +16,7 @@ Ralph Wiggum uses a "completion promise" string the agent must emit to signal ge
 
 ## Decision
 
-The agent writes a marker file `.rein/complete` in the sandbox when it believes the task is complete. Rein checks for this file during the VALIDATE step (after agent exit, before sandbox cleanup) and cross-references it against validation command results to produce a four-outcome confidence classification:
+The agent writes a marker file `.rein/complete` in the sandbox when it believes the task is complete. Rein checks for this file during the VALIDATE step (after agent exit, before sandbox cleanup) and cross-references it against validation command results to produce a six-outcome confidence classification:
 
 | Promise Filed | Validation Passed | Outcome | Interpretation |
 |--------------|-------------------|---------|---------------|
@@ -24,6 +24,10 @@ The agent writes a marker file `.rein/complete` in the sandbox when it believes 
 | No | Yes | **Suspicious** | Validation passes but agent didn't signal completion. Weak validation or agent ran out of context. |
 | Yes | No | **Overconfident** | Agent claims done but validation fails. Hallucination or reward hacking. |
 | No | No | **Incomplete** | Agent didn't finish and validation confirms it. Expected for context-pressure kills and timeouts. |
+| Yes | null | **Unverified** | Agent claims done but no validation commands configured. Promise cannot be verified. |
+| No | null | **Unevaluated** | No completion promise and no validation. No quality signal available. |
+
+`validation_passed` is `null` when `validation_commands` is empty (no validation ran — distinct from pass or fail). See FR-067.
 
 Specific decisions:
 
@@ -31,13 +35,13 @@ Specific decisions:
 - **File existence is the boolean signal.** `completion_promise=true` if the file exists, regardless of content. Empty file counts.
 - **File content is captured** as `completion_summary` in the report (the agent's self-assessment). Empty string if the file is empty.
 - **The prompt suffix instructs the agent** to verify its work before writing the marker. This is assembled by rein's prompt layer (see PROMPTS.md §5) and can be omitted by the operator.
-- **Backward compatible.** Tasks without the prompt suffix never produce a marker. `completion_promise=false`, confidence determined by validation alone: pass → `suspicious`, fail → `incomplete`.
-- **No special handling for context-pressure kills or timeouts.** The four-outcome matrix handles them naturally — the agent didn't write the marker, so it classifies as `suspicious` or `incomplete` depending on validation.
+- **Backward compatible.** Tasks without the prompt suffix never produce a marker. `completion_promise=false`, confidence determined by validation alone: pass → `suspicious`, fail → `incomplete`, no validation → `unevaluated`.
+- **No special handling for context-pressure kills or timeouts.** The six-outcome matrix handles them naturally — the agent didn't write the marker, so it classifies as `suspicious`, `incomplete`, or `unevaluated` depending on validation.
 
 Three new fields in the evaluation section of the JSON report:
 
 - `completion_promise`: `boolean` — whether the marker file existed
-- `completion_confidence`: `"confident" | "suspicious" | "overconfident" | "incomplete"`
+- `completion_confidence`: `"confident" | "suspicious" | "overconfident" | "incomplete" | "unverified" | "unevaluated"`
 - `completion_summary`: `string | null` — contents of the marker file, or `null` if absent
 
 ## Consequences

@@ -67,7 +67,7 @@ Runs concurrently with the agent, parsing the NDJSON/JSONL stream in real-time. 
 
 **Catches:** Incorrect output, hallucinated success, incomplete work.
 
-Runs validation commands in the sandbox after agent exit. Binary scoring (all pass → 1.0, any fail → 0.0) with bounded retry rounds (default 4). The completion promise signal ([ADR-002](ADR-002-completion-promise-signal.md)) cross-references the agent's self-assessment against validation results to produce a four-outcome confidence classification: confident, suspicious, overconfident, incomplete.
+Runs validation commands in the sandbox after agent exit. Binary scoring (all pass → 1.0, any fail → 0.0) with bounded retry rounds (default 4). The completion promise signal ([ADR-002](ADR-002-completion-promise-signal.md)) cross-references the agent's self-assessment against validation results to produce a six-outcome confidence classification: confident, suspicious, overconfident, incomplete, unverified, unevaluated.
 
 **Documented in:** [QUALITY_GATE.md](../../QUALITY_GATE.md), [ADR-002](ADR-002-completion-promise-signal.md)
 
