@@ -6,9 +6,7 @@ Sources: BRIEF.md, ARCHITECTURE.md, TASKS.md, TOKENS.md, SESSIONS.md, AGENTS.md,
 
 ## 1. Vision & Problem Statement
 
-Rein is a context-pressure-aware orchestrator for AI coding agents. It monitors how agents consume their context windows during real development work, intervenes when quality is at risk, and ensures work is persisted before degradation sets in.
-
-Its purpose is context-pressure-aware orchestration during real development work. Structured, normalized reporting makes cross-agent comparison a natural capability — but comparison is a byproduct, not the goal.
+Rein is a context-pressure-aware orchestrator for AI coding agents. It monitors how agents consume their context windows during real development work, intervenes when quality is at risk, and ensures work is persisted before degradation sets in. Normalized reporting makes cross-agent comparison a natural byproduct.
 
 **The five pillars:** Task Dispatch, Execution Isolation, Context Pressure Monitoring, Output Capture, Evaluation.
 
