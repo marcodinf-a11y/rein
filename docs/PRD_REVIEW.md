@@ -124,9 +124,9 @@ Already specified in [ADR-001](adr/ADR-001-agent-git-identity.md): name is deter
 
 ---
 
-## Platform Concern
+## Platform Concern — RESOLVED
 
-S6 lists Windows as a target. FR-047's SIGTERM/SIGKILL are POSIX-only. No FR addresses Windows process termination (`TerminateProcess`, `CTRL_BREAK_EVENT`). Either add a Windows termination FR or explicitly scope R1 to POSIX.
+R1 scoped to Linux and macOS. Windows deferred to R2. The POSIX signal termination model (SIGTERM → 5s grace → SIGKILL) has no direct Windows equivalent — `TerminateProcess` is uncatchable (equivalent to SIGKILL), and graceful stop requires `CTRL_BREAK_EVENT` with a different strategy. Updated PRD_SKETCH.md S3.3 and S6, ARCHITECTURE.md.
 
 ---
 
@@ -145,4 +145,4 @@ S6 lists Windows as a target. FR-047's SIGTERM/SIGKILL are POSIX-only. No FR add
 4. ~~Tighten FR-036/038 with one sentence each on mechanism (S-1, S-2)~~ Resolved.
 5. Add FR for PROGRESS.md / DEFERRED.md seeding (G-2)
 6. ~~Specify empty-validation scoring behavior (S-3)~~ Resolved.
-7. Address Windows process termination or scope R1 to POSIX
+7. ~~Address Windows process termination or scope R1 to POSIX~~ Resolved: R1 scoped to Linux/macOS.

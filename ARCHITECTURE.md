@@ -298,7 +298,7 @@ gemini-cli     available    /usr/bin/gemini (v0.16.0)
 | *(stdlib `asyncio`)* | Async runtime — subprocess orchestration via `asyncio.create_subprocess_exec` |
 | *(stdlib `json`)* | Task definition parsing |
 
-Python 3.12+. Linux, macOS, and Windows. No ML/AI libraries — Rein only *invokes* agents, it doesn't run models.
+Python 3.12+. Linux and macOS (R1). Windows deferred to R2 — POSIX signal termination model (SIGTERM → grace → SIGKILL) has no direct equivalent; requires `CTRL_BREAK_EVENT` strategy. No ML/AI libraries — Rein only *invokes* agents, it doesn't run models.
 
 ## Why Python
 

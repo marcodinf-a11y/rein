@@ -190,7 +190,7 @@ Rein's reliability model follows a defense-in-depth strategy: five independent l
 ### 3.3 Compatibility
 
 - Python 3.12+
-- Linux, macOS, and Windows
+- Linux and macOS (R1). Windows deferred to R2 — requires `CTRL_BREAK_EVENT` termination strategy (see Platform Concern in PRD_REVIEW.md)
 - Git required for worktree/copy workspaces and diff capture
 
 ### 3.4 Installability
@@ -243,7 +243,7 @@ Rein's reliability model follows a defense-in-depth strategy: five independent l
 - Agents are already installed and authenticated by the user
 - Git is required for worktree/copy workspaces and diff capture
 - Python 3.12+
-- Linux, macOS, and Windows are all targeted
+- Linux and macOS (R1). Windows deferred to R2
 - Internet connectivity depends on the agent, not Rein (Rein makes no network calls)
 - No root/admin privileges required
 
