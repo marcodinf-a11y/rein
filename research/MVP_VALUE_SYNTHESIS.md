@@ -73,18 +73,20 @@ On `verdict: "fail"`, produce a structured escalation report: what was attempted
 ### 5. Pre-Dispatch Specification Validation
 
 **Source:** Gas Town proposal 03
+**Status:** Adopted → [ADR-013](../docs/adr/ADR-013-pre-dispatch-specification-validation.md), [TASKS.md](../TASKS.md#pre-dispatch-specification-validation)
 
-Three deterministic checks before spending tokens:
+Two deterministic checks before spending tokens:
 
-1. Description >= 50 chars
+1. Prompt >= 50 chars
 2. `validation_commands` non-empty
-3. Testable acceptance criteria present
 
-Default: warn and prompt operator. `--strict-spec` blocks dispatch. `--no-spec-check` skips.
+Three modes: `warn` (default, prompt operator), `strict` (block dispatch), `skip` (disable). Configurable via `--spec-check` CLI flag and `[spec_validation]` in `rein.toml`. `--yes` flag for non-interactive/CI use.
 
-Gas Town's biggest operational lesson: "Planning and design become the limiting factor" (Appleton). Vague specs are the #1 source of wasted compute across every system studied.
+Acceptance criteria heuristic was dropped — regex keyword matching is brittle and gameable. Gas Town has the `AcceptanceCriteria` field but doesn't enforce it; neither should we. The two concrete checks catch the worst offenders.
 
-**Cost:** Three string/list checks.
+Gas Town's biggest operational lesson: "Planning and design become the limiting factor" (Appleton). Confirmed by Gas Town source code review: zero pre-dispatch spec quality checks exist.
+
+**Cost:** Two string/list checks.
 
 ### 6. Bounded Retry Cap (Default = 2)
 

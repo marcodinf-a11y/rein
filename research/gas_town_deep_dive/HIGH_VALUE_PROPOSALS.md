@@ -29,17 +29,15 @@ Rein and Gas Town are complementary, not competitive. Gas Town maximizes concurr
 
 **Effort:** Low-Medium. JSON file writes at existing lifecycle hooks; git commit integration for worktree/copy modes.
 
-### 2. Pre-Dispatch Specification Validation (highest leverage)
+### 2. Pre-Dispatch Specification Validation (highest leverage) — ADOPTED
 
-**What:** A lightweight deterministic gate before task dispatch that catches vague specifications: description length, presence of validation commands, testable acceptance criteria. Default behavior is warn-and-prompt; `--strict-spec` blocks dispatch, `--no-spec-check` skips entirely.
+**Status:** Adopted → [ADR-013](../../docs/adr/ADR-013-pre-dispatch-specification-validation.md), [TASKS.md](../../TASKS.md#pre-dispatch-specification-validation)
 
-**Why it matters for Rein:** Gas Town's most consistent operational lesson, reported by multiple independent observers: specification quality is the bottleneck, not implementation speed. Gas Town amplifies vague specs across 30 agents via LLM-driven decomposition (Mayor). Rein uses operator-defined tasks, avoiding the amplification problem, but a pre-dispatch gate catches the root cause before any tokens are spent. This is the cheapest intervention with the highest return.
+**What:** Two deterministic checks before task dispatch: prompt length (>= 50 chars) and validation commands presence (non-empty). Three modes: `warn` (default), `strict`, `skip`. Configurable via `--spec-check` CLI flag and `[spec_validation]` in `rein.toml`.
 
-**Confidence:** High -- multiple independent sources (Maggie Appleton, Embracing Enigmas, Better Stack) converge on this finding.
+**Delta from original proposal:** Acceptance criteria heuristic dropped — regex keyword matching is brittle and gameable. Gas Town source code review confirmed they have the field but don't enforce it. Two concrete checks catch the worst offenders.
 
 **Target doc:** TASKS.md (task dispatch enhancement). See [proposal 03](proposals/03_specification_validation.md).
-
-**Effort:** Low. Character count checks, field presence validation, basic heuristics. No LLM involvement.
 
 ### 3. Gas Town Ecosystem Positioning (documentation)
 

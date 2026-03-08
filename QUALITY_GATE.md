@@ -92,6 +92,15 @@ token_budget = 70000
 timeout_seconds = 300
 max_rounds = 2
 
+# ── Specification Validation ──────────────────────
+# Pre-dispatch checks on task definitions. See ADR-013.
+# CLI --spec-check flag overrides mode.
+
+[spec_validation]
+mode = "warn"                      # "warn" | "strict" | "skip"
+min_prompt_length = 50             # minimum prompt character count
+require_validation_commands = true # require non-empty validation_commands
+
 # ── Context Pressure ───────────────────────────────
 # Global zone boundaries. See TOKENS.md for the ContextPressure model.
 
@@ -1103,6 +1112,6 @@ In review mode:
 | [TOKENS.md](TOKENS.md) | `context_pressure` signal reads from the same `ContextPressure` model. `ZoneConfig` in rein.toml replaces the standalone YAML config example. |
 | [SESSIONS.md](SESSIONS.md) | Zone actions (graceful stop, immediate kill) remain unchanged. The quality gate runs **after** the agent finishes or is stopped. |
 | [REPORTS.md](REPORTS.md) | The extended report format supersedes the flat `results[]`/`evaluations[]` structure. Single-round runs without quality gate remain compatible. `escalation_report` field added for terminal failures ([ADR-012](docs/adr/ADR-012-structured-escalation-report.md)). |
-| [TASKS.md](TASKS.md) | Task definitions are unchanged. `validation_commands` feeds the `tests` signal. `token_budget` and `timeout_seconds` apply per-round. |
+| [TASKS.md](TASKS.md) | Task definitions are unchanged. `validation_commands` feeds the `tests` signal and is checked by pre-dispatch spec validation ([ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md)). `token_budget` and `timeout_seconds` apply per-round. |
 | [AGENTS.md](AGENTS.md) | Agent adapters are unchanged. The review agent is invoked through the same adapter interface. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The quality gate is a new subsystem between Output Capture and the final Report step. The execution flow gains a round loop around steps 6-12. Learnings extraction ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) runs after the final verdict. |

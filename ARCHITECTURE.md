@@ -74,6 +74,8 @@ Loads a `TaskDefinition` from JSON and invokes the appropriate agent adapter. Th
 
 **Task validation:** JSON is validated against the schema at load time. If the file is syntactically invalid or missing required fields (`id`, `name`, `prompt`), Rein fails immediately with the parse/validation error before any sandbox or subprocess work.
 
+**Specification validation:** After parsing, Rein runs two deterministic checks: prompt length (>= 50 characters) and validation commands presence (non-empty). Behavior depends on mode: `warn` (default) prints warnings and prompts the operator, `strict` blocks dispatch, `skip` disables checks. Configurable via `--spec-check` CLI flag or `[spec_validation]` in `rein.toml`. See [ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md).
+
 **Pre-flight check:** Before creating a sandbox, the orchestrator calls `is_available()` on the resolved adapter. If the agent CLI is not found in `PATH`, Rein fails immediately with a clear error naming the missing binary and suggesting `rein list agents`. Authentication failures cannot be detected upfront (each agent authenticates differently) — they surface as subprocess errors with non-zero `exit_code`, `termination_reason=error`, and stderr captured in the report.
 
 ### 2. Execution Isolation (`sandbox.py`)
@@ -230,23 +232,24 @@ Context pressure data structures — `ContextPressure`, `ZoneConfig`, and the mo
 ## Execution Flow
 
 1. Load task definition from JSON
-2. Resolve model context window (from config lookup or agent-reported metadata)
-3. Create isolated sandbox per `workspace.type` (tempdir, worktree, or copy)
-4. Seed files and run setup commands in sandbox
-5. Invoke agent CLI as subprocess in sandbox directory (stream-json mode)
-6. **Monitor stream in real-time** — parse NDJSON/JSONL line by line, compute context pressure per turn. Concurrently run wall-clock timer against `timeout_seconds`:
+2. Run specification validation checks (prompt length, validation commands presence). Mode controlled by `--spec-check` / `rein.toml`. See [ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md).
+3. Resolve model context window (from config lookup or agent-reported metadata)
+4. Create isolated sandbox per `workspace.type` (tempdir, worktree, or copy)
+5. Seed files and run setup commands in sandbox
+6. Invoke agent CLI as subprocess in sandbox directory (stream-json mode)
+7. **Monitor stream in real-time** — parse NDJSON/JSONL line by line, compute context pressure per turn. Concurrently run wall-clock timer against `timeout_seconds`:
    - Green zone → continue reading stream
-   - Yellow zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (graceful); `termination_reason=context_pressure`; proceed to Rein wrap-up (step 7a)
-   - Red zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=context_pressure`; proceed to Rein wrap-up (step 7a)
+   - Yellow zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (graceful); `termination_reason=context_pressure`; proceed to Rein wrap-up (step 8a)
+   - Red zone → [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=context_pressure`; proceed to Rein wrap-up (step 8a)
    - Degraded mode (no mid-run tokens) → read stream for events only, compute pressure post-completion
-   - Timeout → if wall-clock exceeds `timeout_seconds`, [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=timed_out`; proceed to Rein wrap-up (step 7a)
-7. Parse final or partial output from stream buffer; normalize tokens into unified model
-   - 7a. *(If terminated by Rein — context pressure or timeout)* **Rein wrap-up:** commit uncommitted changes, write run log, update PROGRESS.md, log termination metrics. Optionally dispatch post-kill summary agent (yellow zone only — not dispatched for red zone or timeout).
-8. Capture diff and artifacts before sandbox cleanup
-9. Run validation commands in sandbox
-10. Generate evaluation result (including `ContextPressure` in report)
-11. **Extract learnings** — after final quality gate verdict, diff sandbox `LEARNINGS.md` against `.rein/LEARNINGS.md` in project root, validate new entries structurally, merge back. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md).
-12. Save structured JSON report to `results/{task_id}_{YYYYMMDD_HHMMSS}.json` (see [REPORTS.md](REPORTS.md))
+   - Timeout → if wall-clock exceeds `timeout_seconds`, [Subprocess Termination Procedure](#subprocess-termination-procedure) (immediate); `termination_reason=timed_out`; proceed to Rein wrap-up (step 8a)
+8. Parse final or partial output from stream buffer; normalize tokens into unified model
+   - 8a. *(If terminated by Rein — context pressure or timeout)* **Rein wrap-up:** commit uncommitted changes, write run log, update PROGRESS.md, log termination metrics. Optionally dispatch post-kill summary agent (yellow zone only — not dispatched for red zone or timeout).
+9. Capture diff and artifacts before sandbox cleanup
+10. Run validation commands in sandbox
+11. Generate evaluation result (including `ContextPressure` in report)
+12. **Extract learnings** — after final quality gate verdict, diff sandbox `LEARNINGS.md` against `.rein/LEARNINGS.md` in project root, validate new entries structurally, merge back. See [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md).
+13. Save structured JSON report to `results/{task_id}_{YYYYMMDD_HHMMSS}.json` (see [REPORTS.md](REPORTS.md))
 
 ## CLI Design
 
@@ -272,6 +275,8 @@ Options:
   -o, --output PATH     Output directory [default: ./results]
   --budget INTEGER      Token budget override [default: 70000]
   --timeout INTEGER     Timeout override in seconds
+  --spec-check TEXT     Spec validation mode: warn, strict, skip [default: warn]
+  -y, --yes             Auto-confirm interactive prompts (spec warnings, etc.)
   --parallel            Dispatch tasks concurrently (future)
   --dry-run             Show what would execute without running
 ```

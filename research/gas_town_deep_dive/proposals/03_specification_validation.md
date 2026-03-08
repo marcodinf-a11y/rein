@@ -3,6 +3,7 @@
 **Target:** TASKS.md (task dispatch enhancement)
 **Priority:** Now
 **Effort:** Low
+**Status:** Adopted → [ADR-013](../../../docs/adr/ADR-013-pre-dispatch-specification-validation.md), [TASKS.md](../../../TASKS.md#pre-dispatch-specification-validation)
 
 ---
 

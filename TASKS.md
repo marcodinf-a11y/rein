@@ -475,6 +475,59 @@ metadata:
 
 ---
 
+## Pre-Dispatch Specification Validation
+
+Before dispatching a task to an agent, Rein validates that the task definition is specific enough for reliable execution. This catches the most common failure mode identified across Gas Town, Ralph Loop, and GSD deployments: vague specifications that waste compute. See [ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md).
+
+### Checks
+
+| Check | Rule | Failure prevented |
+|-------|------|-------------------|
+| **Prompt length** | `len(prompt) >= 50` | One-liner prompts ("fix the auth") that produce ambiguous agent behavior |
+| **Validation commands** | `len(validation_commands) > 0` | Tasks without validation commands make the quality gate meaningless |
+
+### Modes
+
+| Mode | On failure | Non-interactive (`--yes` or no TTY) |
+|------|-----------|--------------------------------------|
+| `warn` (default) | Print warning, prompt `[y/N]` | Print warning, dispatch anyway |
+| `strict` | Print error, exit non-zero | Print error, exit non-zero |
+| `skip` | No checks run | No checks run |
+
+Controlled by `--spec-check {warn,strict,skip}` CLI flag or `[spec_validation]` in `rein.toml`:
+
+```toml
+[spec_validation]
+mode = "warn"                      # "warn" | "strict" | "skip"
+min_prompt_length = 50             # minimum prompt character count
+require_validation_commands = true # require non-empty validation_commands
+```
+
+Resolution: CLI `--spec-check` > `rein.toml` > default (`warn`).
+
+### Warning output
+
+```
+Warning: Task "refactor-auth" has specification issues:
+  - No validation commands defined (quality gate will be meaningless)
+  - Prompt is 23 characters (minimum: 50 for reliable execution)
+
+Dispatch anyway? [y/N]
+```
+
+### Pipeline position
+
+Spec validation runs immediately after JSON parsing, before agent resolution, sandbox creation, or any subprocess work.
+
+### Not included
+
+- LLM-based specification analysis — validation is deterministic and fast
+- Automatic spec improvement — the operator writes specs
+- Semantic validation — only structural checks
+- Acceptance criteria heuristics — regex keyword matching is brittle and gameable
+
+---
+
 ## Validation Patterns
 
 After the agent completes, Rein runs each entry in `validation_commands` inside the sandbox. Each command is executed as a shell subprocess.

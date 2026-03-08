@@ -21,7 +21,7 @@ The initial release. One task, one agent, full lifecycle.
 - ~~Completion promise signal (`.rein/complete` marker)~~ → documented in [REPORTS.md](REPORTS.md#completion-confidence), [ADR-002](docs/adr/ADR-002-completion-promise-signal.md)
 - ~~LEARNINGS.md seed file with 80-line cap~~ → documented in [ARCHITECTURE.md](ARCHITECTURE.md#learningsmd-injection-and-extraction), [PROMPTS.md](PROMPTS.md#3-work-protocol-defense-in-depth--fr-094), [ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)
 - ~~Structured escalation report on failure~~ → documented in [QUALITY_GATE.md](QUALITY_GATE.md#escalation-report), [REPORTS.md](REPORTS.md#escalation-report), [ADR-012](docs/adr/ADR-012-structured-escalation-report.md)
-- Pre-dispatch specification validation
+- ~~Pre-dispatch specification validation~~ → documented in [TASKS.md](TASKS.md#pre-dispatch-specification-validation), [ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md)
 - Bounded retry cap (default 2)
 - Defense-in-depth prompt instruction (context pressure awareness)
 - Deviation rules in task prompts
@@ -92,7 +92,8 @@ Ordered by dependency. From `response.md` analysis — zero source code exists y
 | `models.py` | `TaskDefinition`, `WorkspaceConfig`, `NormalizedTokenUsage`, `ContextPressure`, `ZoneConfig`, `BudgetStatus` dataclasses | Low |
 | `tokens.py` | `analyze_budget`, zone logic | Low |
 | `agents/base.py` | `AgentAdapter` protocol | Low |
-| `cli.py` | Click CLI (`rein run`, `rein list`) | Low |
+| `cli.py` | Click CLI (`rein run`, `rein list`), `--spec-check`/`--yes` flags | Low |
+| `spec_validation.py` | Pre-dispatch spec checks (prompt length, validation commands), mode handling ([ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md)) | Low |
 | `evaluate.py` | Run validation commands, binary scoring | Low |
 | `sandbox.py` | tempdir/worktree/copy creation, file seeding, setup commands, cleanup | Medium |
 | `learnings.py` | LEARNINGS.md injection (copy to sandbox), extraction (diff, validate, merge back), structural validation | Low |

@@ -133,7 +133,7 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 
 | ID | Requirement | Source | Module |
 |----|-------------|--------|--------|
-| FR-080 | `rein run` command with flags: `-t`, `-a`, `-m`, `--effort`, `-o`, `--budget`, `--timeout`, `--dry-run` | ARCHITECTURE.md | `cli.py` |
+| FR-080 | `rein run` command with flags: `-t`, `-a`, `-m`, `--effort`, `-o`, `--budget`, `--timeout`, `--spec-check`, `-y`/`--yes`, `--dry-run` | ARCHITECTURE.md | `cli.py` |
 | FR-081 | `rein list agents` shows available/missing agents with paths and versions | ARCHITECTURE.md | `cli.py` |
 | FR-082 | `rein report` generates summary from results | ARCHITECTURE.md | `cli.py` |
 | FR-083 | `--dry-run` shows what would execute without running | ARCHITECTURE.md | `cli.py` |
@@ -160,7 +160,7 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 | FR-095 | Deviation rules in task prompt template | ROADMAP.md | `runner.py` |
 | FR-096 | Network isolation flag (`--network-isolate` via bubblewrap or Docker) | ROADMAP.md | `cli.py` |
 | FR-097 | Context reload cost tracking (separate counter in `NormalizedTokenUsage`) | ROADMAP.md | `tokens.py` |
-| FR-098 | Pre-dispatch specification validation (description >= 50 chars, validation_commands non-empty) | ROADMAP.md | `runner.py` |
+| FR-098 | Pre-dispatch specification validation: prompt >= 50 chars, validation_commands non-empty. Three modes: `warn` (default, prompt operator), `strict` (block dispatch), `skip` (disable). Configurable via `--spec-check` CLI flag, `--yes` for non-interactive, and `[spec_validation]` in `rein.toml`. ([ADR-013](docs/adr/ADR-013-pre-dispatch-specification-validation.md)) | ROADMAP.md, TASKS.md | `runner.py` |
 
 ---
 
