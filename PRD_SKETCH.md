@@ -156,7 +156,7 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 | FR-091a | LEARNINGS.md extraction: after final verdict, diff sandbox learnings against project root, validate entries (single line, `- ` prefix, ≤ 200 chars, no duplicates), merge, warn if > 80 lines ([ADR-011](docs/adr/ADR-011-learnings-extraction-after-final-verdict.md)) | ROADMAP.md | `learnings.py` |
 | FR-092 | Structured escalation report on verdict "fail": per-round failure narrative, `output_excerpt` extraction (30-line heuristic), progress classification (improved/stagnated/regressed), preserved state (branch/commit/diff_stat), opt-in LLM summary enrichment via `[escalation]` config ([ADR-012](docs/adr/ADR-012-structured-escalation-report.md)) | ROADMAP.md | `escalation.py`, `runner.py` |
 | FR-093 | Bounded retry cap (default 4, configurable per-task or CLI) | ROADMAP.md | `runner.py` |
-| FR-094 | Defense-in-depth prompt instruction (context pressure awareness in agent prompt) | ROADMAP.md | `runner.py` |
+| FR-094 | Defense-in-depth work protocol: structured prompt injection with commit-frequently, PROGRESS.md, LEARNINGS.md, and DEFERRED.md instructions. Context pressure is deliberately omitted from the prompt to avoid anxiety-driven shortcuts ([ADR-014](docs/adr/ADR-014-defense-in-depth-strategy.md)) | ROADMAP.md, PROMPTS.md | `prompts.py` |
 | FR-095 | Deviation rules in task prompt template | ROADMAP.md | `runner.py` |
 | FR-096 | Network isolation flag (`--network-isolate` via bubblewrap or Docker) | ROADMAP.md | `cli.py` |
 | FR-097 | Context reload cost tracking (separate counter in `NormalizedTokenUsage`) | ROADMAP.md | `tokens.py` |
@@ -172,6 +172,8 @@ See [BRIEF.md](BRIEF.md) for full problem statement and positioning.
 - Stream parsing must keep up with agent output (no backpressure)
 
 ### 3.2 Reliability
+
+Rein's reliability model follows a defense-in-depth strategy: five independent layers (spec validation, structured prompt injection, context pressure monitoring, quality gate, graceful recovery) each catch different failure modes. No single layer is trusted — probabilistic controls (prompt instructions) reduce failure frequency, deterministic controls (monitoring, validation, recovery) guarantee detection. See [ADR-014](docs/adr/ADR-014-defense-in-depth-strategy.md).
 
 - On agent crash: capture partial output from stream buffer, report failure with `termination_reason=error`
 - On parse failure: capture raw stdout/stderr, set `parse_error`, sandbox artifacts still captured
