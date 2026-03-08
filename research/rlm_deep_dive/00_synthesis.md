@@ -171,7 +171,7 @@ No updates to rein design docs are warranted at this time. RLM integration is no
 | `SESSIONS.md` | Document dual-context pressure model for RLM (root vs. sub-call). No changes to zone actions or thresholds. |
 
 **Immediate documentation update (regardless of RLM decision):**
-- Add this deep dive to `research/` as a reference for future RLM evaluation decisions. Cross-reference from `research/rlm-research-findings.md`.
+- Add this deep dive to `research/` as a reference for future RLM evaluation decisions.
 
 ---
 

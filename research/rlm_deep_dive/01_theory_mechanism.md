@@ -2,7 +2,7 @@
 
 **Deep Dive Document 01 | March 2026**
 
-This document analyzes the theoretical relationship between Recursive Language Models (arXiv:2512.24601) and Rein's context pressure model. It builds on the findings in [`research/rlm-research-findings.md`](../rlm-research-findings.md) and the degradation research in [`research/02_context_degradation_research.md`](../02_context_degradation_research.md) without duplicating their content.
+This document analyzes the theoretical relationship between Recursive Language Models (arXiv:2512.24601) and Rein's context pressure model. It builds on the synthesis in [`00_synthesis.md`](00_synthesis.md) and the degradation research in [`research/02_context_degradation_research.md`](../02_context_degradation_research.md) without duplicating their content.
 
 ---
 
@@ -163,4 +163,4 @@ For rein, the most actionable insight from RLM research is the validation of dec
 - Prime Intellect. "RLM: The Paradigm of 2026." primeintellect.ai/blog/rlm.
 - Rein ARCHITECTURE.md, SESSIONS.md.
 - Rein research/02_context_degradation_research.md.
-- Rein research/rlm-research-findings.md.
+- Rein research/rlm_deep_dive/00_synthesis.md.
